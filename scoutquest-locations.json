@@ -1,0 +1,125 @@
+{
+  "exported": "2026-05-16T22:43:28.379Z",
+  "locations": [
+    {
+      "id": 1,
+      "name": "Alter Wasserturm",
+      "seed": "scout-tower",
+      "hint1": "In der Naehe einer Schule.",
+      "hint2": "Roter Backstein, 19. Jahrhundert.",
+      "photoUrl": "",
+      "lat": 51.245504,
+      "lon": 6.53003,
+      "directionFlag": "NE",
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "name": "Markthalle",
+      "seed": "scout-market",
+      "hint1": "Wo es samstags duftet.",
+      "hint2": "Grosses Glasdach, Eisentraeger.",
+      "photoUrl": "",
+      "lat": 51.242898,
+      "lon": 6.530867,
+      "directionFlag": "SW",
+      "isActive": true
+    },
+    {
+      "id": 3,
+      "name": "Brunnen am Ratsplatz",
+      "seed": "scout-fountain",
+      "hint1": "Vor dem Rathaus.",
+      "hint2": "Drei Figuren aus Bronze.",
+      "photoUrl": "",
+      "lat": 51.240218,
+      "lon": 6.533355,
+      "directionFlag": "SW",
+      "isActive": true
+    },
+    {
+      "id": 4,
+      "name": "Bahnhof-Vorplatz",
+      "seed": "scout-station",
+      "hint1": "Wo viele Menschen ankommen.",
+      "hint2": "Uhr ueber dem Hauptportal.",
+      "photoUrl": "",
+      "lat": 51.245551,
+      "lon": 6.54768,
+      "directionFlag": "SE",
+      "isActive": true
+    },
+    {
+      "id": 5,
+      "name": "Stadtpark-Eingang",
+      "seed": "scout-park",
+      "hint1": "Gruenes Tor mit zwei Saeulen.",
+      "hint2": "Bank aus Eichenholz.",
+      "photoUrl": "",
+      "lat": 51.244396,
+      "lon": 6.537702,
+      "directionFlag": "NW",
+      "isActive": true
+    },
+    {
+      "id": 6,
+      "name": "Alte Steinbruecke",
+      "seed": "scout-bridge",
+      "hint1": "Ueber dem Fluss.",
+      "hint2": "Sieben Boegen.",
+      "photoUrl": "",
+      "lat": 51.240909,
+      "lon": 6.524246,
+      "directionFlag": "SE",
+      "isActive": true
+    },
+    {
+      "id": 7,
+      "name": "Kapelle am Huegel",
+      "seed": "scout-chapel",
+      "hint1": "Hoechster Punkt der Stadt.",
+      "hint2": "Weisse Waende, rotes Dach.",
+      "photoUrl": "",
+      "lat": 51.237576,
+      "lon": 6.552961,
+      "directionFlag": "SE",
+      "isActive": true
+    },
+    {
+      "id": 8,
+      "name": "Buchhandlung im Hof",
+      "seed": "scout-books",
+      "hint1": "Schmaler Durchgang.",
+      "hint2": "Schaufenster mit alten Karten.",
+      "photoUrl": "",
+      "lat": 51.238611,
+      "lon": 6.537187,
+      "directionFlag": "NW",
+      "isActive": true
+    },
+    {
+      "id": 9,
+      "name": "Hafenkran",
+      "seed": "scout-harbor",
+      "hint1": "Wo das Wasser ist.",
+      "hint2": "Rost-orange Stahl.",
+      "photoUrl": "",
+      "lat": 51.241218,
+      "lon": 6.545127,
+      "directionFlag": "C",
+      "isActive": true
+    },
+    {
+      "id": 10,
+      "name": "Aussichtsturm",
+      "seed": "scout-vista",
+      "hint1": "Man sieht alles von dort.",
+      "hint2": "248 Stufen hinauf.",
+      "photoUrl": "",
+      "lat": 51.244463,
+      "lon": 6.542798,
+      "directionFlag": "NE",
+      "isActive": true
+    }
+  ]
+}

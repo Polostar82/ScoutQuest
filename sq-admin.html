@@ -1,0 +1,2735 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ScoutQuest Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root {
+    --forest: #1f3a2b;
+    --moss: #2d5440;
+    --paper: #faf5e6;
+    --paper-2: #f3ead0;
+    --sand: #efe3c2;
+    --ink: #14181a;
+    --ink-2: #4a5046;
+    --orange: #e87d3e;
+    --neon: #5be584;
+    --red: #e63946;
+    --gold: #f2c94c;
+    --radius: 18px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: "Manrope", system-ui, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(80% 120% at 10% 5%, rgba(31,58,43,.18), transparent 55%),
+      radial-gradient(80% 140% at 95% 90%, rgba(232,125,62,.16), transparent 55%),
+      repeating-linear-gradient(45deg, rgba(31,58,43,.03) 0 2px, transparent 2px 8px),
+      var(--sand);
+    padding: 20px;
+  }
+
+  .app {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: var(--paper);
+    border: 1px solid rgba(20,24,26,.08);
+    border-radius: 24px;
+    box-shadow: 0 22px 70px -30px rgba(20,24,26,.45);
+    overflow: hidden;
+  }
+
+  .top {
+    padding: 18px 20px 16px;
+    background: var(--forest);
+    color: var(--paper);
+    display: grid;
+    gap: 14px;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .title {
+    font-family: "Bricolage Grotesque", system-ui, sans-serif;
+    font-size: clamp(28px, 4vw, 38px);
+    line-height: 1;
+    margin: 0;
+  }
+
+  .sub {
+    color: rgba(250,245,230,.75);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    border: 0;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .btn-light { background: var(--paper); color: var(--forest); }
+  .btn-outline { background: transparent; color: var(--paper); border: 1px solid rgba(250,245,230,.35); }
+  .btn-danger { background: var(--red); color: var(--paper); }
+  .btn-forest { background: var(--forest); color: var(--paper); }
+  .btn-icon {
+    min-width: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .map-section {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.7);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .map-section.open {
+    display: flex;
+  }
+
+  .map-container {
+    width: 90%;
+    height: 80%;
+    background: var(--paper);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .map-header {
+    padding: 12px 16px;
+    background: var(--forest);
+    color: var(--paper);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .map-head-left {
+    display: grid;
+    gap: 2px;
+  }
+
+  .map-head-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .map-active-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(250,245,230,.92);
+  }
+
+  .map-active-toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: #5be584;
+    cursor: pointer;
+  }
+
+  .map-hint {
+    font-size: 12px;
+    color: rgba(250,245,230,.8);
+    font-weight: 600;
+  }
+
+  #mapLeaflet {
+    flex: 1;
+  }
+
+  .cluster-section {
+    margin-top: 16px;
+  }
+
+  .cluster-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+
+  .cluster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .direction-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    color: var(--orange);
+    margin-bottom: 4px;
+    padding-left: 4px;
+  }
+
+  .stat {
+    background: rgba(250,245,230,.08);
+    border: 1px solid rgba(250,245,230,.15);
+    border-radius: 12px;
+    padding: 10px;
+  }
+
+  .stat label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    opacity: .68;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+
+  .stat strong {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 20px;
+    color: var(--neon);
+  }
+
+  .content { padding: 18px; }
+
+  .content-tools {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+  }
+
+  .overview-active-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-2);
+  }
+
+  .overview-active-toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--moss);
+    cursor: pointer;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    border: 1px solid rgba(20,24,26,.1);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--paper);
+    box-shadow: 0 1px 0 rgba(20,24,26,.04);
+  }
+
+  .preview {
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(135deg, var(--moss), #3f6e55);
+    position: relative;
+  }
+
+  .preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+    color: var(--forest);
+    background: var(--gold);
+  }
+
+  .badge.ok {
+    background: var(--neon);
+  }
+
+  .card-body {
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .idline {
+    font-size: 11px;
+    color: var(--ink-2);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  .name {
+    font-family: "Bricolage Grotesque", system-ui, sans-serif;
+    font-size: 18px;
+    color: var(--forest);
+    line-height: 1.05;
+  }
+
+  .meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    background: var(--paper-2);
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-2);
+  }
+
+  .modal-wrap {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,24,26,.64);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 20;
+  }
+
+  .modal-wrap.open { display: flex; }
+
+  .modal {
+    width: min(780px, 100%);
+    max-height: 92vh;
+    overflow: auto;
+    background: var(--paper);
+    border-radius: 18px;
+    border: 1px solid rgba(20,24,26,.12);
+    box-shadow: 0 25px 70px -30px rgba(20,24,26,.5);
+    padding: 16px;
+  }
+
+  .modal h2 {
+    margin: 0;
+    font-family: "Bricolage Grotesque", system-ui, sans-serif;
+    color: var(--forest);
+    font-size: 28px;
+  }
+
+  .modal-sub {
+    color: var(--ink-2);
+    font-size: 13px;
+    margin-top: 2px;
+    font-weight: 600;
+  }
+
+  .form-grid {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .field {
+    display: grid;
+    gap: 5px;
+  }
+
+  .field.full { grid-column: 1 / -1; }
+
+  .flag-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    border: 1px solid rgba(20,24,26,.16);
+    border-radius: 12px;
+    background: #fff;
+  }
+
+  .flag-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-2);
+  }
+
+  .field label {
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    font-weight: 700;
+  }
+
+  .field input,
+  .field textarea {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(20,24,26,.16);
+    background: #fff;
+    font: inherit;
+    padding: 10px 11px;
+    color: var(--ink);
+  }
+
+  .field textarea {
+    min-height: 78px;
+    resize: vertical;
+  }
+
+  .upload {
+    border: 2px dashed rgba(20,24,26,.2);
+    border-radius: 12px;
+    padding: 14px;
+    background: rgba(31,58,43,.03);
+    text-align: center;
+    display: grid;
+    gap: 8px;
+  }
+
+  .upload.active { border-color: var(--neon); background: rgba(91,229,132,.12); }
+
+  .upload small {
+    color: var(--ink-2);
+    font-weight: 600;
+  }
+
+  .preview-large {
+    margin-top: 8px;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(135deg, var(--moss), #3f6e55);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .preview-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .modal-actions {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .notice {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--ink-2);
+    font-weight: 600;
+  }
+
+  @media (max-width: 820px) {
+    body { padding: 10px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="title-row">
+      <div>
+        <h1 class="title">ScoutQuest Admin</h1>
+        <div class="sub">Orte, Fotos, Hinweise und GPS zentral verwalten</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-light" id="btnTeams">👥 Teams</button>
+        <button class="btn btn-light" id="btnData">📦 Daten</button>
+        <button class="btn btn-light" id="btnPickFolder" title="Speicherordner wählen – Daten werden dort automatisch als JSON-Dateien gespeichert">📁 Ordner</button>
+        <button class="btn btn-light" id="btnShowMap">📍 Auf Karte anzeigen</button>
+        <button class="btn btn-outline btn-icon" id="btnSettings" type="button" title="Einstellungen" aria-label="Einstellungen">⚙</button>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><label>Orte gesamt</label><strong id="sTotal">0</strong></div>
+      <div class="stat"><label>Mit Foto</label><strong id="sPhoto">0</strong></div>
+      <div class="stat"><label>Mit GPS</label><strong id="sGps">0</strong></div>
+      <div class="stat"><label>Vollständigkeit</label><strong id="sComplete">0%</strong></div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="content-tools">
+      <label class="overview-active-toggle" for="overviewOnlyActiveToggle">
+        <input id="overviewOnlyActiveToggle" type="checkbox" />
+        Nur aktive anzeigen
+      </label>
+    </div>
+    <div id="grid" class="grid"></div>
+    <div class="notice">Speicherort: localStorage unter <b>scoutquest.locations.v1</b>. Das Spiel liest diese Werte automatisch beim Start.</div>
+  </div>
+</div>
+
+<div id="mapSection" class="map-section">
+  <div class="map-container">
+    <div class="map-header">
+      <div class="map-head-left">
+        <h2 style="margin: 0; font-size: 18px;">Alle Standorte auf der Karte</h2>
+        <div id="mapHint" class="map-hint">Tipp: Marker anklicken fuer Vorschau und Bearbeitung.</div>
+      </div>
+      <div class="map-head-right">
+        <label class="map-active-toggle" for="mapOnlyActiveToggle">
+          <input id="mapOnlyActiveToggle" type="checkbox" />
+          Nur aktive anzeigen
+        </label>
+        <button class="btn btn-outline" id="btnCloseMap" style="color:var(--paper);border-color:rgba(250,245,230,.35);">✕</button>
+      </div>
+    </div>
+    <div id="mapLeaflet"></div>
+  </div>
+</div>
+
+<div id="modalWrap" class="modal-wrap">
+  <div class="modal">
+    <h2 id="modalTitle">Ort bearbeiten</h2>
+    <div class="modal-sub" id="modalSub">Daten werden lokal gespeichert.</div>
+
+    <div class="form-grid">
+      <div class="field full">
+        <label for="fName">Name</label>
+        <input id="fName" type="text" />
+      </div>
+
+      <div class="field full">
+        <label for="fHint1">Hinweis 1</label>
+        <textarea id="fHint1"></textarea>
+      </div>
+
+      <div class="field full">
+        <label for="fHint2">Hinweis 2</label>
+        <textarea id="fHint2"></textarea>
+      </div>
+
+      <div class="field full">
+        <label for="fPhotoUrl">Foto URL</label>
+        <input id="fPhotoUrl" type="url" placeholder="https://..." />
+      </div>
+
+      <div class="field full">
+        <label>Foto Datei-Upload (Drag & Drop oder Datei wählen)</label>
+        <div id="uploadZone" class="upload">
+          <div>Datei hier ablegen oder auswählen</div>
+          <small>Wird als Base64 direkt im Browser gespeichert (lokal)</small>
+          <button type="button" class="btn btn-forest" id="btnPickImage" style="justify-self:center;">Datei wählen</button>
+          <input type="file" id="imgFile" accept="image/*" hidden>
+        </div>
+        <div class="preview-large"><img id="previewLarge" alt="Vorschau" /></div>
+      </div>
+
+      <div class="field">
+        <label for="fLat">Breitengrad</label>
+        <input id="fLat" type="number" step="0.000001" placeholder="z.B. 52.520008" />
+      </div>
+
+      <div class="field">
+        <label for="fLon">Längengrad</label>
+        <input id="fLon" type="number" step="0.000001" placeholder="z.B. 13.404954" />
+      </div>
+
+      <div class="field full">
+        <label for="fCoordDump">Koordinaten-Dump (Google Maps DMS)</label>
+        <input id="fCoordDump" type="text" placeholder='z.B. (51°14\'32.7"N 6°32\'16.8"E)' />
+      </div>
+
+      <div class="field full">
+        <button type="button" class="btn btn-outline" id="btnFindOnMap" style="color:var(--forest);border-color:rgba(20,24,26,.2);justify-self:start;">Punkt auf Karte suchen</button>
+      </div>
+
+      <div class="field full">
+        <label>Kategorie-Flag (für Nord-Ost/Sued-Ost/Sued-West/Nord-West Cluster)</label>
+        <div class="flag-group" id="fDirectionGroup">
+          <label class="flag-option"><input type="radio" name="fDirection" value="C"> Zentral</label>
+          <label class="flag-option"><input type="radio" name="fDirection" value="NE"> Nord-Ost</label>
+          <label class="flag-option"><input type="radio" name="fDirection" value="SE"> Sued-Ost</label>
+          <label class="flag-option"><input type="radio" name="fDirection" value="SW"> Sued-West</label>
+          <label class="flag-option"><input type="radio" name="fDirection" value="NW"> Nord-West</label>
+        </div>
+      </div>
+
+      <div class="field full">
+        <label>Ort im Spiel verwenden</label>
+        <div class="flag-group" id="fActiveGroup">
+          <label class="flag-option"><input type="radio" name="fIsActive" value="1"> Aktiv</label>
+          <label class="flag-option"><input type="radio" name="fIsActive" value="0"> Nicht aktiv</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="btnDelete">Loeschen</button>
+      <button class="btn btn-outline" id="btnCancel" style="color:var(--forest);border-color:rgba(20,24,26,.2);">Abbrechen</button>
+      <button class="btn btn-forest" id="btnSave">Speichern</button>
+    </div>
+    <div class="notice" id="modalNotice"></div>
+  </div>
+</div>
+
+<div id="settingsWrap" class="modal-wrap">
+  <div class="modal">
+    <h2>Einstellungen</h2>
+    <div class="modal-sub">Kartenfokus, Standard-Zoom und Startpunkt lokal verwalten.</div>
+
+    <div class="form-grid">
+      <div class="field full">
+        <label for="sFocusCoord">Fokus Koordinate</label>
+        <input id="sFocusCoord" type="text" placeholder='z.B. (51°14\'32.7"N 6°32\'16.8"E)' />
+      </div>
+
+      <div class="field">
+        <label for="sMapZoom">Karten Zoom</label>
+        <input id="sMapZoom" type="number" min="1" max="19" step="1" />
+      </div>
+
+      <div class="field">
+        <label for="sStartLabel">Startpunkt des Spiels</label>
+        <input id="sStartLabel" type="text" placeholder="z.B. Kirche Willich-Schiefbahn" />
+      </div>
+
+      <div class="field full" style="margin-top:10px;border-top:1px solid rgba(20,24,26,.08);padding-top:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.08em;">Spieldauer</div>
+      </div>
+
+      <div class="field">
+        <label for="sDurationMin">Min. Dauer (Min)</label>
+        <input id="sDurationMin" type="number" min="5" max="360" step="5" />
+      </div>
+      <div class="field">
+        <label for="sDurationMax">Max. Dauer (Min)</label>
+        <input id="sDurationMax" type="number" min="5" max="360" step="5" />
+      </div>
+      <div class="field">
+        <label for="sDurationDefault">Standard Dauer (Min)</label>
+        <input id="sDurationDefault" type="number" min="5" max="360" step="5" />
+      </div>
+
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btnSettingsCancel" style="color:var(--forest);border-color:rgba(20,24,26,.2);">Abbrechen</button>
+      <button class="btn btn-forest" id="btnSettingsSave">Speichern</button>
+    </div>
+    <div class="notice" id="settingsNotice"></div>
+  </div>
+</div>
+
+<div id="teamsWrap" class="modal-wrap">
+  <div class="modal">
+    <h2>Teams Verwaltung</h2>
+    <div class="modal-sub">Teams erstellen, bearbeiten und Gast-Anfragen verwalten.</div>
+
+    <div style="margin-top: 16px; border-bottom: 1px solid rgba(20,24,26,.12); padding-bottom: 10px;">
+      <button class="btn btn-forest" id="btnAddTeam" style="font-size: 13px;">+ Neues Team</button>
+    </div>
+
+    <div style="margin-top: 14px;">
+      <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 10px 0; color: var(--forest); display:flex; align-items:center; gap:8px;">&#x1F465; Mitglieder</h3>
+      <div id="teamsGrid" style="display: grid; gap: 10px;"></div>
+    </div>
+
+    <div style="margin-top: 18px; border-top: 2px solid var(--paper-2); padding-top: 12px;">
+      <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 10px 0; color: #c47b1a; display:flex; align-items:center; gap:8px;">&#x1F477; Gäste</h3>
+      <div id="guestTeamsGrid" style="display: grid; gap: 10px;"></div>
+    </div>
+
+    <div style="margin-top: 18px; border-top: 2px solid var(--paper-2); padding-top: 12px;">
+      <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 10px 0; color: var(--forest); display:flex; align-items:center; gap:8px;">&#x23F3; Gast-Anfragen</h3>
+      <div id="guestRequestsGrid" style="display: grid; gap: 8px; max-height: 300px; overflow-y: auto;"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btnTeamsCancel" style="color:var(--forest);border-color:rgba(20,24,26,.2);">Schliessen</button>
+    </div>
+  </div>
+</div>
+
+<div id="teamEditWrap" class="modal-wrap">
+  <div class="modal">
+    <h2 id="teamEditTitle">Team bearbeiten</h2>
+    <div class="modal-sub" id="teamEditSub">Teamdaten bearbeiten und speichern.</div>
+
+    <div id="teamStats" style="display: none;"></div>
+
+    <div class="form-grid">
+      <div class="field full">
+        <label for="tName">Teamname</label>
+        <input id="tName" type="text" placeholder="z.B. Rote Adler" />
+      </div>
+
+      <div class="field full">
+        <label for="tPassword">Passwort</label>
+        <input id="tPassword" type="text" placeholder="z.B. geheim123" />
+      </div>
+
+      <div class="field">
+        <label for="tPoints">Punkte</label>
+        <input id="tPoints" type="number" step="1" value="0" />
+      </div>
+
+      <div class="field">
+        <label for="tMembers">Mitgliederanzahl</label>
+        <input id="tMembers" type="number" min="0" step="1" value="0" />
+      </div>
+
+      <div class="field full">
+        <label>Gründungsdatum</label>
+        <input id="tFoundDate" type="date" />
+      </div>
+
+      <div class="field full">
+        <label for="tNotes">Notizen/Statistiken</label>
+        <textarea id="tNotes" placeholder="z.B. Aktuelle Leistung, Bemerkungen..."></textarea>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="btnTeamDelete">Loeschen</button>
+      <button class="btn btn-outline" id="btnTeamEditCancel" style="color:var(--forest);border-color:rgba(20,24,26,.2);">Abbrechen</button>
+      <button class="btn btn-forest" id="btnTeamSave">Speichern</button>
+    </div>
+    <div class="notice" id="teamEditNotice"></div>
+    <div style="margin-top: 12px; display: flex; gap: 8px; border-top: 1px solid rgba(20,24,26,.1); padding-top: 12px;">
+      <button class="btn btn-outline" id="btnExportTeamStats" style="color:var(--forest);border-color:rgba(20,24,26,.2);font-size:11px;flex:1;">📥 Statistiken Export</button>
+      <button class="btn btn-outline" id="btnImportTeamStats" style="color:var(--forest);border-color:rgba(20,24,26,.2);font-size:11px;flex:1;">📤 Statistiken Import</button>
+    </div>
+  </div>
+</div>
+
+<div id="dataWrap" class="modal-wrap">
+  <div class="modal">
+    <h2>Daten verwalten</h2>
+    <div class="modal-sub">Standorte, Teams und Sessions als getrennte JSON-Dateien exportieren oder importieren.</div>
+
+    <div class="form-grid">
+      <div class="field full">
+        <label>Standorte</label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-forest" id="btnExportLocationsJson" type="button">Export Standorte</button>
+          <button class="btn btn-outline" id="btnImportLocationsJson" type="button" style="color:var(--forest);border-color:rgba(20,24,26,.2);">Import Standorte</button>
+        </div>
+      </div>
+      <div class="field full">
+        <label>Teams</label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-forest" id="btnExportTeamsJson" type="button">Export Teams</button>
+          <button class="btn btn-outline" id="btnImportTeamsJson" type="button" style="color:var(--forest);border-color:rgba(20,24,26,.2);">Import Teams</button>
+        </div>
+      </div>
+      <div class="field full">
+        <label>Sessions</label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-forest" id="btnExportSessionsJson" type="button">Export Sessions</button>
+          <button class="btn btn-outline" id="btnImportSessionsJson" type="button" style="color:var(--forest);border-color:rgba(20,24,26,.2);">Import Sessions</button>
+        </div>
+      </div>
+      <div class="field full">
+        <label>Komplettbackup</label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-forest" id="btnExportBackupJson" type="button">Export Backup</button>
+          <button class="btn btn-outline" id="btnImportBackupJson" type="button" style="color:var(--forest);border-color:rgba(20,24,26,.2);">Import Backup</button>
+        </div>
+      </div>
+      <input type="file" id="dataImportFile" accept="application/json" hidden>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btnDataClose" style="color:var(--forest);border-color:rgba(20,24,26,.2);">Schliessen</button>
+    </div>
+    <div class="notice" id="dataNotice"></div>
+  </div>
+</div>
+
+<div id="importTeamStatsWrap" class="modal-wrap">
+  <div class="modal">
+    <h2>Statistiken importieren</h2>
+    <div class="modal-sub">Team-Spiel-Sessions aus JSON importieren</div>
+
+    <div class="form-grid">
+      <div class="field full">
+        <label>Statistiken-Datei</label>
+        <div style="border: 2px dashed rgba(20,24,26,.2); border-radius: 12px; padding: 14px; background: rgba(31,58,43,.03); text-align: center; display: grid; gap: 8px;">
+          <div style="font-size: 32px;">📊</div>
+          <div style="font-size: 12px; color: var(--ink-2); font-weight: 600;">Datei hier ablegen oder wählen</div>
+          <button type="button" class="btn btn-forest" id="btnPickTeamStatsFile" style="justify-self:center;font-size:11px;">Datei wählen</button>
+          <input type="file" id="teamStatsImportFile" accept="application/json" hidden>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btnTeamStatsImportCancel" style="color:var(--forest);border-color:rgba(20,24,26,.2);">Abbrechen</button>
+      <button class="btn btn-forest" id="btnTeamStatsImportConfirm" disabled>Importieren</button>
+    </div>
+    <div class="notice" id="teamStatsImportNotice"></div>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = "scoutquest.locations.v1";
+  const SETTINGS_STORAGE_KEY = "scoutquest.admin.settings.v1";
+  const TEAMS_STORAGE_KEY = "scoutquest.teams.v1";
+  const GUEST_REQUESTS_STORAGE_KEY = "scoutquest.guest-requests.v1";
+  const SESSIONS_STORAGE_KEY = "scoutquest.sessions.v1";
+  const CHURCH_CENTER = { lat: 51.242417, lon: 6.538000 };
+  const PLACEHOLDER_COORD = { lat: 51.239194, lon: 6.539389 };
+  const GAME_RADIUS_METERS = 1800;
+  const DEFAULT_SETTINGS = {
+    focusLat: CHURCH_CENTER.lat,
+    focusLon: CHURCH_CENTER.lon,
+    mapZoom: 14,
+    startLabel: "Kirche",
+    durationMin: 20,
+    durationMax: 180,
+    durationDefault: 60,
+  };
+  const DEFAULT_LOCATIONS = [
+    { id: 1, name: "Alter Wasserturm", seed: "scout-tower", hint1: "In der Naehe einer Schule.", hint2: "Roter Backstein, 19. Jahrhundert.", photoUrl: "", lat: null, lon: null },
+    { id: 2, name: "Markthalle", seed: "scout-market", hint1: "Wo es samstags duftet.", hint2: "Grosses Glasdach, Eisentraeger.", photoUrl: "", lat: null, lon: null },
+    { id: 3, name: "Brunnen am Ratsplatz", seed: "scout-fountain", hint1: "Vor dem Rathaus.", hint2: "Drei Figuren aus Bronze.", photoUrl: "", lat: null, lon: null },
+    { id: 4, name: "Bahnhof-Vorplatz", seed: "scout-station", hint1: "Wo viele Menschen ankommen.", hint2: "Uhr ueber dem Hauptportal.", photoUrl: "", lat: null, lon: null },
+    { id: 5, name: "Stadtpark-Eingang", seed: "scout-park", hint1: "Gruenes Tor mit zwei Saeulen.", hint2: "Bank aus Eichenholz.", photoUrl: "", lat: null, lon: null },
+    { id: 6, name: "Alte Steinbruecke", seed: "scout-bridge", hint1: "Ueber dem Fluss.", hint2: "Sieben Boegen.", photoUrl: "", lat: null, lon: null },
+    { id: 7, name: "Kapelle am Huegel", seed: "scout-chapel", hint1: "Hoechster Punkt der Stadt.", hint2: "Weisse Waende, rotes Dach.", photoUrl: "", lat: null, lon: null },
+    { id: 8, name: "Buchhandlung im Hof", seed: "scout-books", hint1: "Schmaler Durchgang.", hint2: "Schaufenster mit alten Karten.", photoUrl: "", lat: null, lon: null },
+    { id: 9, name: "Hafenkran", seed: "scout-harbor", hint1: "Wo das Wasser ist.", hint2: "Rost-orange Stahl.", photoUrl: "", lat: null, lon: null },
+    { id: 10, name: "Aussichtsturm", seed: "scout-vista", hint1: "Man sieht alles von dort.", hint2: "248 Stufen hinauf.", photoUrl: "", lat: null, lon: null },
+  ];
+
+  const byId = (id) => document.getElementById(id);
+  const gridEl = byId("grid");
+  const modalWrap = byId("modalWrap");
+  const settingsWrap = byId("settingsWrap");
+  const modalTitle = byId("modalTitle");
+  const modalSub = byId("modalSub");
+  const modalNotice = byId("modalNotice");
+  const settingsNotice = byId("settingsNotice");
+
+  const fName = byId("fName");
+  const fHint1 = byId("fHint1");
+  const fHint2 = byId("fHint2");
+  const fPhotoUrl = byId("fPhotoUrl");
+  const fLat = byId("fLat");
+  const fLon = byId("fLon");
+  const fCoordDump = byId("fCoordDump");
+  const previewLarge = byId("previewLarge");
+  const fDirectionInputs = Array.from(document.querySelectorAll('input[name="fDirection"]'));
+  const fActiveInputs = Array.from(document.querySelectorAll('input[name="fIsActive"]'));
+  const overviewOnlyActiveToggle = byId("overviewOnlyActiveToggle");
+  const mapOnlyActiveToggle = byId("mapOnlyActiveToggle");
+  const sFocusCoord = byId("sFocusCoord");
+  const sMapZoom = byId("sMapZoom");
+  const sStartLabel = byId("sStartLabel");
+  const sDurationMin     = byId("sDurationMin");
+  const sDurationMax     = byId("sDurationMax");
+  const sDurationDefault = byId("sDurationDefault");
+
+  const uploadZone = byId("uploadZone");
+  const imgFile = byId("imgFile");
+
+  let locations = [];
+  let settings = { ...DEFAULT_SETTINGS };
+  let editingIndex = -1;
+  let mapMoveIndex = -1;
+  let mapReturnToModal = false;
+  let mapMoveMarker = null;
+  let overviewOnlyActive = false;
+  let mapOnlyActive = false;
+  let teams = [];
+  let guestRequests = [];
+  let sessions = [];
+  let editingTeamIndex = -1;
+
+  // ========== FILE SYSTEM ACCESS API ==========
+
+  let dirHandle = null;
+
+  /** Öffnet die IndexedDB und gibt das db-Objekt zurück */
+  function idbOpen() {
+    return new Promise((res, rej) => {
+      const req = indexedDB.open("scoutquest-folder-v1", 1);
+      req.onupgradeneeded = (e) => e.target.result.createObjectStore("handles");
+      req.onsuccess = (e) => res(e.target.result);
+      req.onerror = () => rej(req.error);
+    });
+  }
+
+  async function saveHandleToIDB(handle) {
+    try {
+      const db = await idbOpen();
+      await new Promise((res, rej) => {
+        const tx = db.transaction("handles", "readwrite");
+        tx.objectStore("handles").put(handle, "dir");
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+    } catch (e) { console.warn("IDB save failed", e); }
+  }
+
+  async function loadHandleFromIDB() {
+    try {
+      const db = await idbOpen();
+      return await new Promise((res) => {
+        const tx = db.transaction("handles", "readonly");
+        const req = tx.objectStore("handles").get("dir");
+        req.onsuccess = () => res(req.result || null);
+        req.onerror = () => res(null);
+      });
+    } catch (e) { return null; }
+  }
+
+  async function ensureDirPermission() {
+    if (!dirHandle) return false;
+    try {
+      const perm = await dirHandle.queryPermission({ mode: "readwrite" });
+      if (perm === "granted") return true;
+      const granted = await dirHandle.requestPermission({ mode: "readwrite" });
+      return granted === "granted";
+    } catch (e) { return false; }
+  }
+
+  async function writeJsonToFolder(name, data) {
+    if (!dirHandle) return;
+    const ok = await ensureDirPermission();
+    if (!ok) return;
+    try {
+      const fh = await dirHandle.getFileHandle(name, { create: true });
+      const writable = await fh.createWritable();
+      await writable.write(JSON.stringify(data, null, 2));
+      await writable.close();
+    } catch (err) { console.error("Schreiben fehlgeschlagen:", name, err); }
+  }
+
+  async function readJsonFromFolder(name) {
+    if (!dirHandle) return null;
+    const ok = await ensureDirPermission();
+    if (!ok) return null;
+    try {
+      const fh = await dirHandle.getFileHandle(name);
+      const file = await fh.getFile();
+      const text = await file.text();
+      return JSON.parse(text);
+    } catch (err) {
+      if (err.name !== "NotFoundError") console.error("Lesen fehlgeschlagen:", name, err);
+      return null;
+    }
+  }
+
+  async function pickSaveFolder() {
+    if (!window.showDirectoryPicker) {
+      alert("Dein Browser unterstützt kein direktes Speichern in Ordner.\nBitte Chrome oder Edge verwenden.\n\nDie Export-Buttons im 📦 Daten-Menü funktionieren weiterhin.");
+      return;
+    }
+    try {
+      const h = await window.showDirectoryPicker({ mode: "readwrite", id: "scoutquest", startIn: "downloads" });
+      dirHandle = h;
+      await saveHandleToIDB(h);
+      loadTeams();
+      loadGuestRequests();
+      const regularTeams = teams.filter((t) => !t.guest);
+      const guestTeams = teams.filter((t) => t.guest);
+      // Sofort alle aktuellen Daten schreiben
+      await writeJsonToFolder("scoutquest-locations.json", { exported: new Date().toISOString(), locations });
+      await writeJsonToFolder("scoutquest-teams.json", { exported: new Date().toISOString(), teams: regularTeams, guestTeams, guestRequests });
+      await writeJsonToFolder("scoutquest-sessions.json", { exported: new Date().toISOString(), sessions });
+      setDataNotice && setDataNotice("Ordner gesetzt: " + h.name + " – Daten werden ab sofort automatisch gespeichert.");
+    } catch (err) {
+      if (err.name !== "AbortError") alert("Ordner konnte nicht geöffnet werden: " + err.message);
+    }
+  }
+
+  async function tryRestoreFolder() {
+    if (!window.showDirectoryPicker) return;
+    const handle = await loadHandleFromIDB();
+    if (!handle) return;
+    dirHandle = handle;
+    // Wenn Zugriff ohne Nutzeraktion noch gilt, sofort aus Dateien laden
+    try {
+      const perm = await handle.queryPermission({ mode: "readwrite" });
+      if (perm === "granted") {
+        await loadFromFolder();
+      }
+    } catch (e) { /* Kein Zugriff ohne Geste – ok */ }
+  }
+
+  async function loadFromFolder() {
+    let changed = false;
+    const locData = await readJsonFromFolder("scoutquest-locations.json");
+    if (locData) {
+      const list = Array.isArray(locData) ? locData : Array.isArray(locData.locations) ? locData.locations : null;
+      if (list && list.length) {
+        locations = list.map(normalize);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(locations));
+        changed = true;
+      }
+    }
+    const teamsData = await readJsonFromFolder("scoutquest-teams.json");
+    if (teamsData) {
+      const regularList = Array.isArray(teamsData) ? teamsData : Array.isArray(teamsData.teams) ? teamsData.teams : [];
+      const guestList   = Array.isArray(teamsData.guestTeams) ? teamsData.guestTeams : [];
+      const folderTeams = [...regularList, ...guestList];
+      
+      // Merge: Keep current localStorage teams, but update with folder data
+      let localTeams = [];
+      try {
+        const raw = localStorage.getItem(TEAMS_STORAGE_KEY);
+        if (raw) localTeams = JSON.parse(raw);
+      } catch (e) { /* ignore */ }
+      
+      // Build merged list: folder teams overwrite local teams by ID, preserve local-only teams
+      const folderIds = new Set(folderTeams.map(t => t && t.id));
+      const localOnly = localTeams.filter(t => !folderIds.has(t.id));
+      const merged = [...folderTeams, ...localOnly];
+      
+      if (merged.length > 0) {
+        teams = merged.map((t, i) => normalizeTeam(t, i));
+        localStorage.setItem(TEAMS_STORAGE_KEY, JSON.stringify(teams));
+        changed = true;
+      }
+    }
+    const sessData = await readJsonFromFolder("scoutquest-sessions.json");
+    if (sessData) {
+      const list = Array.isArray(sessData) ? sessData : Array.isArray(sessData.sessions) ? sessData.sessions : null;
+      if (list) {
+        sessions = list.map(normalizeSession);
+        localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+        changed = true;
+      }
+    }
+    if (changed) {
+      renderStats();
+      renderGrid();
+    }
+  }
+
+  // ========== END FILE SYSTEM ACCESS API ==========
+
+  function safeNumber(v) {
+    const n = Number(v);
+    return Number.isFinite(n) ? Number(n.toFixed(6)) : null;
+  }
+
+  function normalize(loc, idx) {
+    const fallback = DEFAULT_LOCATIONS[idx] || DEFAULT_LOCATIONS[0];
+    return {
+      id: Number(loc && loc.id) || fallback.id,
+      name: String((loc && loc.name) || fallback.name),
+      seed: String((loc && loc.seed) || fallback.seed),
+      hint1: String((loc && loc.hint1) || fallback.hint1),
+      hint2: String((loc && loc.hint2) || fallback.hint2),
+      photoUrl: typeof (loc && loc.photoUrl) === "string" ? loc.photoUrl : "",
+      lat: safeNumber(loc && loc.lat),
+      lon: safeNumber(loc && loc.lon),
+      directionFlag: normalizeDirection(loc && loc.directionFlag),
+      isActive: typeof (loc && loc.isActive) === "boolean" ? loc.isActive : true,
+    };
+  }
+
+  function normalizeDirection(v) {
+    const val = String(v || "").trim().toUpperCase();
+    return val === "C" || val === "NE" || val === "SE" || val === "SW" || val === "NW" ? val : "";
+  }
+
+  function directionLabel(directionCode) {
+    const dir = normalizeDirection(directionCode);
+    if (dir === "C") return "Zentral";
+    if (dir === "NE") return "Nord-Ost";
+    if (dir === "SE") return "Sued-Ost";
+    if (dir === "SW") return "Sued-West";
+    if (dir === "NW") return "Nord-West";
+    return "Ohne Flag";
+  }
+
+  function parseDmsPart(raw) {
+    const match = String(raw || "")
+      .trim()
+      .match(/^(\d{1,3})\s*°\s*(\d{1,2})\s*'\s*(\d{1,2}(?:\.\d+)?)\s*"\s*([NSEW])$/i);
+    if (!match) return null;
+    const deg = Number(match[1]);
+    const min = Number(match[2]);
+    const sec = Number(match[3]);
+    const hem = match[4].toUpperCase();
+    if (!Number.isFinite(deg) || !Number.isFinite(min) || !Number.isFinite(sec)) return null;
+    const decimal = deg + min / 60 + sec / 3600;
+    const signed = hem === "S" || hem === "W" ? -decimal : decimal;
+    return Number(signed.toFixed(6));
+  }
+
+  function parseGoogleMapsDump(raw) {
+    const cleaned = String(raw || "").trim().replace(/^\(/, "").replace(/\)$/, "");
+    const parts = cleaned.match(/\d{1,3}\s*°\s*\d{1,2}\s*'\s*\d{1,2}(?:\.\d+)?\s*"\s*[NSEW]/gi);
+    if (!parts || parts.length !== 2) return null;
+    const first = parseDmsPart(parts[0]);
+    const second = parseDmsPart(parts[1]);
+    if (!Number.isFinite(first) || !Number.isFinite(second)) return null;
+
+    const firstHem = /[NS]$/i.test(parts[0]);
+    const secondHem = /[EW]$/i.test(parts[1]);
+    if (firstHem && secondHem) return { lat: first, lon: second };
+
+    const altFirstHem = /[EW]$/i.test(parts[0]);
+    const altSecondHem = /[NS]$/i.test(parts[1]);
+    if (altFirstHem && altSecondHem) return { lat: second, lon: first };
+
+    return null;
+  }
+
+  function decimalToDms(value, positiveHemisphere, negativeHemisphere) {
+    if (!Number.isFinite(value)) return "";
+    const hemisphere = value >= 0 ? positiveHemisphere : negativeHemisphere;
+    const absolute = Math.abs(value);
+    const degrees = Math.floor(absolute);
+    const minutesFloat = (absolute - degrees) * 60;
+    const minutes = Math.floor(minutesFloat);
+    const seconds = (minutesFloat - minutes) * 60;
+    return degrees + "°" + String(minutes).padStart(2, "0") + "'" + seconds.toFixed(1) + '"' + hemisphere;
+  }
+
+  function formatGoogleMapsDump(lat, lon) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return "";
+    return "(" + decimalToDms(lat, "N", "S") + " " + decimalToDms(lon, "E", "W") + ")";
+  }
+
+  function getGameCenter() {
+    return {
+      lat: Number.isFinite(settings.focusLat) ? settings.focusLat : CHURCH_CENTER.lat,
+      lon: Number.isFinite(settings.focusLon) ? settings.focusLon : CHURCH_CENTER.lon,
+    };
+  }
+
+  function getMapZoom() {
+    const zoom = Number(settings.mapZoom);
+    return Number.isFinite(zoom) ? Math.max(1, Math.min(19, Math.round(zoom))) : DEFAULT_SETTINGS.mapZoom;
+  }
+
+  function getStartLabel() {
+    const label = String(settings.startLabel || "").trim();
+    return label || DEFAULT_SETTINGS.startLabel;
+  }
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (!raw) {
+        settings = { ...DEFAULT_SETTINGS };
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      settings = {
+        focusLat: safeNumber(parsed && parsed.focusLat) ?? DEFAULT_SETTINGS.focusLat,
+        focusLon: safeNumber(parsed && parsed.focusLon) ?? DEFAULT_SETTINGS.focusLon,
+        mapZoom: Number.isFinite(Number(parsed && parsed.mapZoom)) ? Math.max(1, Math.min(19, Math.round(Number(parsed.mapZoom)))) : DEFAULT_SETTINGS.mapZoom,
+        startLabel: String((parsed && parsed.startLabel) || DEFAULT_SETTINGS.startLabel),
+        durationMin: Number.isFinite(Number(parsed && parsed.durationMin)) ? Math.max(5, Math.min(360, Number(parsed.durationMin))) : DEFAULT_SETTINGS.durationMin,
+        durationMax: Number.isFinite(Number(parsed && parsed.durationMax)) ? Math.max(5, Math.min(360, Number(parsed.durationMax))) : DEFAULT_SETTINGS.durationMax,
+        durationDefault: Number.isFinite(Number(parsed && parsed.durationDefault)) ? Math.max(5, Math.min(360, Number(parsed.durationDefault))) : DEFAULT_SETTINGS.durationDefault,
+      };
+    } catch (err) {
+      settings = { ...DEFAULT_SETTINGS };
+    }
+  }
+
+  function saveSettings() {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  }
+
+  function hasGps(loc) {
+    return Number.isFinite(loc.lat) && Number.isFinite(loc.lon);
+  }
+
+  function hasPhoto(loc) {
+    return typeof loc.photoUrl === "string" && loc.photoUrl.trim().length > 0;
+  }
+
+  function haversineMeters(aLat, aLon, bLat, bLon) {
+    const toRad = Math.PI / 180;
+    const dLat = (bLat - aLat) * toRad;
+    const dLon = (bLon - aLon) * toRad;
+    const aa =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(aLat * toRad) * Math.cos(bLat * toRad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
+    return 6371000 * c;
+  }
+
+  function distanceToGameCenter(loc) {
+    if (!hasGps(loc)) return null;
+    const center = getGameCenter();
+    return haversineMeters(center.lat, center.lon, loc.lat, loc.lon);
+  }
+
+  function getSelectedDirection() {
+    const found = fDirectionInputs.find((input) => input.checked);
+    return found ? found.value : "";
+  }
+
+  function setSelectedDirection(direction) {
+    const normalized = normalizeDirection(direction);
+    fDirectionInputs.forEach((input) => {
+      input.checked = input.value === normalized;
+    });
+  }
+
+  function getSelectedActive() {
+    const found = fActiveInputs.find((input) => input.checked);
+    return found ? found.value === "1" : true;
+  }
+
+  function setSelectedActive(value) {
+    const active = value !== false;
+    fActiveInputs.forEach((input) => {
+      input.checked = active ? input.value === "1" : input.value === "0";
+    });
+  }
+
+  function completenessPercent() {
+    const activeLocations = locations.filter((loc) => loc.isActive !== false);
+    if (!activeLocations.length) return 0;
+    let complete = 0;
+    for (const loc of activeLocations) {
+      const done = !!loc.name.trim() && !!loc.hint1.trim() && !!loc.hint2.trim() && hasPhoto(loc) && hasGps(loc);
+      if (done) complete += 1;
+    }
+    return Math.round((complete / activeLocations.length) * 100);
+  }
+
+  function photoFallback(seed) {
+    return "https://picsum.photos/seed/" + encodeURIComponent(seed || "scout-default") + "/800/600";
+  }
+
+  function photoSrc(loc) {
+    return hasPhoto(loc) ? loc.photoUrl : photoFallback(loc.seed);
+  }
+
+  function saveAll() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(locations));
+    writeJsonToFolder("scoutquest-locations.json", { exported: new Date().toISOString(), locations });
+    renderStats();
+    renderGrid();
+  }
+
+  function inGameRadius(lat, lon) {
+    const center = getGameCenter();
+    const distance = haversineMeters(center.lat, center.lon, lat, lon);
+    return distance <= GAME_RADIUS_METERS;
+  }
+
+  function markerOffset(originLat, originLon, position, total) {
+    if (total <= 1) return { lat: originLat, lon: originLon };
+    const angle = (2 * Math.PI * position) / total;
+    const radiusMeters = Math.min(40, 10 + total * 3);
+    const dNorth = Math.sin(angle) * radiusMeters;
+    const dEast = Math.cos(angle) * radiusMeters;
+    const latDelta = dNorth / 111320;
+    const cosLat = Math.max(0.000001, Math.cos((originLat * Math.PI) / 180));
+    const lonDelta = dEast / (111320 * cosLat);
+    return {
+      lat: Number((originLat + latDelta).toFixed(6)),
+      lon: Number((originLon + lonDelta).toFixed(6)),
+    };
+  }
+
+  function setMapHint(text) {
+    const hint = byId("mapHint");
+    if (!hint) return;
+    hint.textContent = text;
+  }
+
+  function startMapMoveMode(index, returnToModal, focusZoom = 17) {
+    mapMoveIndex = index;
+    mapReturnToModal = !!returnToModal;
+    setMapHint("Verschiebemodus aktiv: Zielmarker ziehen, dann Speichern bestaetigen.");
+    const mapNode = byId("mapLeaflet");
+    if (mapNode) mapNode.style.cursor = "crosshair";
+
+    if (!window.mapInstance || mapMoveIndex < 0 || mapMoveIndex >= locations.length) return;
+    const current = locations[mapMoveIndex];
+    const startLat = hasGps(current) ? current.lat : PLACEHOLDER_COORD.lat;
+    const startLon = hasGps(current) ? current.lon : PLACEHOLDER_COORD.lon;
+
+    if (mapMoveMarker) {
+      window.mapInstance.removeLayer(mapMoveMarker);
+      mapMoveMarker = null;
+    }
+
+    const pinkIcon = L.icon({
+      iconUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 41"><path d="M12.5 0C5.6 0 0 5.6 0 12.5c0 8.75 12.5 28.75 12.5 28.75s12.5-20 12.5-28.75C25 5.6 19.4 0 12.5 0z" fill="%23ec4c9a"/><circle cx="12.5" cy="12.5" r="5" fill="white"/></svg>',
+      iconSize: [25, 41],
+      iconAnchor: [12.5, 41],
+      popupAnchor: [0, -41]
+    });
+
+    mapMoveMarker = L.marker([startLat, startLon], { draggable: true, icon: pinkIcon }).addTo(window.mapInstance);
+    mapMoveMarker.bindPopup("Zielpunkt ziehen und danach Speichern bestaetigen.").openPopup();
+    
+    setTimeout(() => {
+      if (window.mapInstance) {
+        window.mapInstance.setView([startLat, startLon], focusZoom);
+      }
+    }, 50);
+
+    mapMoveMarker.on("dragend", () => {
+      const pos = mapMoveMarker.getLatLng();
+      const nextLat = Number(pos.lat.toFixed(6));
+      const nextLon = Number(pos.lng.toFixed(6));
+
+      if (!inGameRadius(nextLat, nextLon)) {
+        alert("Punkt liegt ausserhalb des Spielradius (1.800 m). Bitte innerhalb des Kreises setzen.");
+        mapMoveMarker.setLatLng([startLat, startLon]);
+        return;
+      }
+
+      if (!confirm("Speichern?")) {
+        mapMoveMarker.setLatLng([startLat, startLon]);
+        return;
+      }
+
+      const idx = mapMoveIndex;
+      locations[idx] = {
+        ...locations[idx],
+        lat: nextLat,
+        lon: nextLon,
+      };
+      saveAll();
+
+      const shouldReturn = mapReturnToModal;
+      stopMapMoveMode();
+      if (shouldReturn) {
+        closeMapModal();
+        openModal(idx);
+      } else {
+        showMapModal();
+      }
+    });
+  }
+
+  function stopMapMoveMode() {
+    mapMoveIndex = -1;
+    mapReturnToModal = false;
+    setMapHint("Tipp: Marker anklicken fuer Vorschau und Bearbeitung.");
+    const mapNode = byId("mapLeaflet");
+    if (mapNode) mapNode.style.cursor = "";
+    if (window.mapInstance && mapMoveMarker) {
+      window.mapInstance.removeLayer(mapMoveMarker);
+    }
+    mapMoveMarker = null;
+  }
+
+  function loadAll() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        locations = DEFAULT_LOCATIONS.map(normalize);
+        saveAll();
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || !parsed.length) {
+        locations = DEFAULT_LOCATIONS.map(normalize);
+      } else {
+        locations = parsed.map(normalize);
+      }
+    } catch (err) {
+      locations = DEFAULT_LOCATIONS.map(normalize);
+    }
+    saveAll();
+  }
+
+  // ========== SESSIONS & STATISTICS ==========
+  
+  function loadSessions() {
+    try {
+      const raw = localStorage.getItem(SESSIONS_STORAGE_KEY);
+      if (!raw) {
+        sessions = [];
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      sessions = Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      sessions = [];
+    }
+  }
+
+  function getTeamStats(teamName) {
+    const teamSessions = sessions.filter(s => s.teamName === teamName);
+    if (teamSessions.length === 0) {
+      return {
+        playCount: 0,
+        totalDuration: 0,
+        avgDuration: 0,
+        totalPointsEarned: 0,
+        avgPointsPerGame: 0,
+        totalLocationsFound: 0,
+        avgLocationsPerGame: 0,
+        successRate: 0,
+        sessions: []
+      };
+    }
+    
+    const totalDuration = teamSessions.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+    const totalPoints = teamSessions.reduce((sum, s) => sum + (s.pointsEarned || 0), 0);
+    const totalLocations = teamSessions.reduce((sum, s) => sum + (s.locationsFound || 0), 0);
+    const completedGames = teamSessions.filter(s => (s.locationsFound || 0) >= (s.locationsTarget || 1)).length;
+    
+    return {
+      playCount: teamSessions.length,
+      totalDuration,
+      avgDuration: Math.round(totalDuration / teamSessions.length),
+      totalPointsEarned: totalPoints,
+      avgPointsPerGame: Math.round(totalPoints / teamSessions.length),
+      totalLocationsFound: totalLocations,
+      avgLocationsPerGame: (totalLocations / teamSessions.length).toFixed(1),
+      successRate: Math.round((completedGames / teamSessions.length) * 100),
+      sessions: teamSessions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    };
+  }
+
+  function formatSeconds(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  }
+
+  function downloadJsonFile(fileName, payload) {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function setDataNotice(message) {
+    const notice = byId("dataNotice");
+    if (notice) notice.textContent = message;
+  }
+
+  function openDataModal() {
+    setDataNotice("");
+    byId("dataWrap").classList.add("open");
+  }
+
+  function closeDataModal() {
+    byId("dataWrap").classList.remove("open");
+    setDataNotice("");
+    window.dataImportMode = "";
+    const input = byId("dataImportFile");
+    if (input) input.value = "";
+  }
+
+  function importLocationsFromObject(data) {
+    const list = Array.isArray(data) ? data : Array.isArray(data.locations) ? data.locations : null;
+    if (!list) throw new Error("Keine locations gefunden");
+    locations = list.map(normalize);
+    saveAll();
+    renderStats();
+    renderGrid();
+  }
+
+  function importTeamsFromObject(data) {
+    const regularList = Array.isArray(data) ? data : Array.isArray(data.teams) ? data.teams : [];
+    const guestList   = Array.isArray(data && data.guestTeams) ? data.guestTeams : [];
+    const list = [...regularList, ...guestList];
+    if (!list.length) throw new Error("Keine teams gefunden");
+    teams = list.map((team, index) => normalizeTeam(team, index));
+    saveTeams();
+  }
+
+  function normalizeSession(session) {
+    const timestamp = String((session && session.timestamp) || new Date().toISOString());
+    return {
+      id: Number(session && session.id) || Date.now(),
+      teamName: String((session && session.teamName) || ""),
+      isGuest: !!(session && session.isGuest),
+      startTime: Number.isFinite(Number(session && session.startTime)) ? Number(session.startTime) : Date.now(),
+      endTime: Number.isFinite(Number(session && session.endTime)) ? Number(session.endTime) : Date.now(),
+      durationSeconds: Number.isFinite(Number(session && session.durationSeconds)) ? Math.max(0, Math.round(Number(session.durationSeconds))) : 0,
+      locationsTarget: Number.isFinite(Number(session && session.locationsTarget)) ? Math.max(0, Math.round(Number(session.locationsTarget))) : 0,
+      locationsFound: Number.isFinite(Number(session && session.locationsFound)) ? Math.max(0, Math.round(Number(session.locationsFound))) : 0,
+      pointsEarned: Number.isFinite(Number(session && session.pointsEarned)) ? Math.round(Number(session.pointsEarned)) : 0,
+      timestamp,
+      date: String((session && session.date) || timestamp.split("T")[0]),
+    };
+  }
+
+  function saveSessions() {
+    localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+    writeJsonToFolder("scoutquest-sessions.json", { exported: new Date().toISOString(), sessions });
+  }
+
+  function importSessionsFromObject(data) {
+    const list = Array.isArray(data) ? data : Array.isArray(data.sessions) ? data.sessions : null;
+    if (!list) throw new Error("Keine sessions gefunden");
+    loadSessions();
+    const normalized = list.map(normalizeSession);
+    const existingKeys = new Set(sessions.map((session) => String(session.timestamp || session.id)));
+    const uniqueSessions = normalized.filter((session) => !existingKeys.has(String(session.timestamp || session.id)));
+    sessions = sessions.concat(uniqueSessions);
+    saveSessions();
+    return { imported: uniqueSessions.length, skipped: normalized.length - uniqueSessions.length };
+  }
+
+  function exportLocationsJson() {
+    loadAll();
+    downloadJsonFile("scoutquest-locations.json", { exported: new Date().toISOString(), locations });
+    setDataNotice("Standorte exportiert.");
+  }
+
+  function exportTeamsJson() {
+    loadTeams();
+    loadGuestRequests();
+    const regularTeams = teams.filter(t => !t.guest);
+    const guestTeams   = teams.filter(t => t.guest);
+    downloadJsonFile("scoutquest-teams.json", {
+      exported: new Date().toISOString(),
+      teams: regularTeams,
+      guestTeams,
+      guestRequests,
+    });
+    setDataNotice("Teams exportiert.");
+  }
+
+  function exportSessionsJson() {
+    loadSessions();
+    downloadJsonFile("scoutquest-sessions.json", { exported: new Date().toISOString(), sessions });
+    setDataNotice("Sessions exportiert.");
+  }
+
+  function exportBackupJson() {
+    loadAll();
+    loadTeams();
+    loadSessions();
+    downloadJsonFile("scoutquest-backup.json", { exported: new Date().toISOString(), locations, teams, sessions });
+    setDataNotice("Komplettbackup exportiert.");
+  }
+
+  function importDataFile(file) {
+    const mode = window.dataImportMode || "";
+    if (!mode) {
+      setDataNotice("Bitte zuerst eine Import-Art wählen.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result || "{}"));
+
+        if (mode === "locations") {
+          importLocationsFromObject(data);
+          setDataNotice("Standorte importiert.");
+        } else if (mode === "teams") {
+          importTeamsFromObject(data);
+          setDataNotice("Teams importiert.");
+        } else if (mode === "sessions") {
+          const result = importSessionsFromObject(data);
+          setDataNotice(`${result.imported} Sessions importiert${result.skipped ? `, ${result.skipped} Duplikate übersprungen` : ""}.`);
+        } else if (mode === "backup") {
+          if (data.locations) importLocationsFromObject(data.locations);
+          if (data.teams) importTeamsFromObject(data.teams);
+          if (data.sessions) {
+            const result = importSessionsFromObject(data.sessions);
+            setDataNotice(`Backup importiert: ${result.imported} Sessions, ${result.skipped} Duplikate.`);
+          } else {
+            setDataNotice("Backup importiert.");
+          }
+        }
+      } catch (err) {
+        setDataNotice("Import fehlgeschlagen: " + err.message);
+      }
+    };
+    reader.onerror = () => setDataNotice("Datei konnte nicht gelesen werden.");
+    reader.readAsText(file);
+  }
+
+  // ========== TEAMS MANAGEMENT ==========
+  
+  function loadTeams() {
+    try {
+      const raw = localStorage.getItem(TEAMS_STORAGE_KEY);
+      if (!raw) {
+        teams = [];
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      teams = Array.isArray(parsed) ? parsed.map((team, index) => normalizeTeam(team, index)) : [];
+    } catch (err) {
+      teams = [];
+    }
+  }
+
+  function normalizeTeam(team, index) {
+    const fallback = createTeam();
+    return {
+      id: Number(team && team.id) || fallback.id + index,
+      name: String((team && team.name) || fallback.name),
+      password: String((team && team.password) || fallback.password),
+      points: Number.isFinite(Number(team && team.points)) ? Math.round(Number(team.points)) : fallback.points,
+      found: Number.isFinite(Number(team && team.found)) ? Math.max(0, Math.round(Number(team.found))) : 0,
+      members: Number.isFinite(Number(team && team.members)) ? Math.max(0, Math.round(Number(team.members))) : fallback.members,
+      foundDate: String((team && team.foundDate) || fallback.foundDate),
+      notes: String((team && team.notes) || fallback.notes),
+      guest: team && team.guest === true,
+    };
+  }
+
+  function saveTeams() {
+    localStorage.setItem(TEAMS_STORAGE_KEY, JSON.stringify(teams));
+    const _regularTeams = teams.filter(t => !t.guest);
+    const _guestTeams   = teams.filter(t => t.guest);
+    writeJsonToFolder("scoutquest-teams.json", { exported: new Date().toISOString(), teams: _regularTeams, guestTeams: _guestTeams });
+    renderTeams();
+  }
+
+  function loadGuestRequests() {
+    try {
+      const raw = localStorage.getItem(GUEST_REQUESTS_STORAGE_KEY);
+      if (!raw) {
+        guestRequests = [];
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      guestRequests = Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      guestRequests = [];
+    }
+  }
+
+  function saveGuestRequests() {
+    localStorage.setItem(GUEST_REQUESTS_STORAGE_KEY, JSON.stringify(guestRequests));
+    writeJsonToFolder("scoutquest-guestrequests.json", { exported: new Date().toISOString(), guestRequests });
+    renderGuestRequests();
+  }
+
+  function createTeam() {
+    return {
+      id: Date.now(),
+      name: "Neues Team",
+      password: "",
+      points: 0,
+      found: 0,
+      members: 0,
+      foundDate: new Date().toISOString().split("T")[0],
+      notes: "",
+      guest: false
+    };
+  }
+
+  function openTeamsModal() {
+    loadTeams();
+    loadGuestRequests();
+    loadSessions();
+    renderTeams();
+    renderGuestRequests();
+    byId("teamsWrap").classList.add("open");
+  }
+
+  function closeTeamsModal() {
+    byId("teamsWrap").classList.remove("open");
+  }
+
+  function openTeamEditModal(index) {
+    editingTeamIndex = index;
+    loadSessions();
+    const tEditTitle = byId("teamEditTitle");
+    const tEditSub = byId("teamEditSub");
+    
+    if (index === -1) {
+      tEditTitle.textContent = "Neues Team erstellen";
+      tEditSub.textContent = "Geben Sie Teamdaten ein.";
+    } else {
+      tEditTitle.textContent = "Team bearbeiten: " + escapeHtml(teams[index].name);
+      tEditSub.textContent = "Änderungen werden lokal gespeichert.";
+    }
+
+    const team = index === -1 ? createTeam() : teams[index];
+    byId("tName").value = team.name;
+    byId("tPassword").value = team.password;
+    byId("tPoints").value = String(team.points);
+    byId("tMembers").value = String(team.members);
+    byId("tFoundDate").value = team.foundDate;
+    byId("tNotes").value = team.notes || "";
+    byId("teamEditNotice").textContent = "";
+
+    if (index === -1) {
+      byId("btnTeamDelete").style.display = "none";
+      byId("teamStats").style.display = "none";
+    } else {
+      byId("btnTeamDelete").style.display = "inline-block";
+      byId("teamStats").style.display = "block";
+      const stats = getTeamStats(team.name);
+      renderTeamStats(stats);
+    }
+
+    byId("teamEditWrap").classList.add("open");
+  }
+  
+  function renderTeamStats(stats) {
+    const statsDiv = byId("teamStats");
+    if (!statsDiv) return;
+    
+    const statsHtml = `
+      <div style="margin-top: 14px; padding: 12px; background: rgba(31,58,43,.08); border-radius: 12px; border: 1px solid rgba(31,58,43,.16);">
+        <h4 style="margin: 0 0 10px 0; font-size: 13px; color: var(--forest); font-weight: 700;">Statistiken</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div style="background: var(--paper); padding: 8px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 11px; color: var(--ink-2); font-weight: 700;">Spiele</div>
+            <div style="font-size: 18px; font-weight: 800; color: var(--forest); margin-top: 2px;">${stats.playCount}</div>
+          </div>
+          <div style="background: var(--paper); padding: 8px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 11px; color: var(--ink-2); font-weight: 700;">Erfolgsquote</div>
+            <div style="font-size: 18px; font-weight: 800; color: var(--neon); margin-top: 2px;">${stats.successRate}%</div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px; color: var(--ink-2);">
+          <div><strong>⏱ Ø Spieldauer:</strong> ${formatSeconds(stats.avgDuration)}</div>
+          <div><strong>⭐ Ø Punkte:</strong> ${stats.avgPointsPerGame}</div>
+          <div><strong>📍 Ø Orte:</strong> ${stats.avgLocationsPerGame}</div>
+          <div><strong>🎯 Gesamt Punkte:</strong> ${stats.totalPointsEarned}</div>
+        </div>
+      </div>
+      <div style="margin-top: 12px;">
+        <h4 style="font-size: 13px; color: var(--forest); font-weight: 700; margin: 0 0 8px 0;">Letzte Spiele</h4>
+        <div id="sessionsList" style="max-height: 200px; overflow-y: auto; display: grid; gap: 6px;">
+        </div>
+      </div>
+    `;
+    
+    statsDiv.innerHTML = statsHtml;
+    
+    // Render sessions list
+    const sessionsList = byId("sessionsList");
+    if (stats.sessions.length === 0) {
+      sessionsList.innerHTML = '<div style="font-size: 11px; color: var(--ink-2); padding: 8px;">Noch keine Spiel-Sessions.</div>';
+    } else {
+      stats.sessions.slice(0, 5).forEach(session => {
+        const date = new Date(session.timestamp);
+        const dateStr = date.toLocaleDateString("de-DE") + " " + date.toLocaleTimeString("de-DE").slice(0, 5);
+        const item = document.createElement("div");
+        item.style.cssText = "font-size: 10px; padding: 6px; background: var(--paper); border-radius: 6px; border-left: 3px solid var(--neon); color: var(--ink-2);";
+        item.innerHTML = 
+          `<div style="font-weight: 700;">${dateStr}</div>` +
+          `<div>⏱ ${formatSeconds(session.durationSeconds)} | ⭐ ${session.pointsEarned} Pkte | 📍 ${session.locationsFound}/${session.locationsTarget}</div>`;
+        sessionsList.appendChild(item);
+      });
+    }
+  }
+
+  function closeTeamEditModal() {
+    byId("teamEditWrap").classList.remove("open");
+    editingTeamIndex = -1;
+  }
+
+  function saveTeamModal() {
+    const name = byId("tName").value.trim();
+    const password = byId("tPassword").value.trim();
+    const points = parseInt(byId("tPoints").value) || 0;
+    const members = Math.max(0, parseInt(byId("tMembers").value) || 0);
+    const foundDate = byId("tFoundDate").value.trim();
+    const notes = byId("tNotes").value.trim();
+    const notice = byId("teamEditNotice");
+
+    if (!name) {
+      notice.textContent = "Bitte einen Teamnamen eingeben.";
+      return;
+    }
+
+    if (!password) {
+      notice.textContent = "Bitte ein Passwort eingeben.";
+      return;
+    }
+
+    const team = {
+      id: editingTeamIndex === -1 ? Date.now() : teams[editingTeamIndex].id,
+      name,
+      password,
+      points,
+      members,
+      foundDate: foundDate || new Date().toISOString().split("T")[0],
+      notes
+    };
+
+    if (editingTeamIndex === -1) {
+      teams.push(team);
+    } else {
+      teams[editingTeamIndex] = team;
+    }
+
+    saveTeams();
+    closeTeamEditModal();
+    openTeamsModal();
+  }
+
+  function deleteCurrentTeam() {
+    if (editingTeamIndex < 0 || editingTeamIndex >= teams.length) return;
+    if (!confirm("Team wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.")) return;
+    
+    teams.splice(editingTeamIndex, 1);
+    saveTeams();
+    closeTeamEditModal();
+    openTeamsModal();
+  }
+
+  function renderTeamCard(team, idx, isGuest) {
+    const card = document.createElement("div");
+    card.style.border = isGuest ? "1px solid rgba(232,125,62,.35)" : "1px solid rgba(20,24,26,.1)";
+    card.style.borderRadius = "12px";
+    card.style.padding = "10px";
+    card.style.background = isGuest ? "rgba(232,125,62,.06)" : "rgba(31,58,43,.04)";
+    const guestBadge = isGuest
+      ? '<span style="display:inline-block;margin-left:6px;font-size:9px;font-weight:800;letter-spacing:.1em;padding:2px 6px;border-radius:5px;background:rgba(242,201,76,.22);color:#c47b1a;border:1px solid rgba(232,125,62,.35);vertical-align:middle;">GAST</span>'
+      : '';
+    card.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:14px;font-weight:700;color:' + (isGuest ? '#c47b1a' : 'var(--forest)') + ';display:flex;align-items:center;flex-wrap:wrap;gap:4px;">' + escapeHtml(team.name) + guestBadge + '</div>' +
+          '<div style="font-size:12px;color:var(--ink-2);margin-top:4px;">' +
+            (isGuest ? '' : '<span>🔐 Passwort: ' + escapeHtml(team.password || '') + '</span><br/>') +
+            '<span>⭐ Punkte: ' + (team.points || 0) + '</span><br/>' +
+            '<span>📍 Gefundene Orte: ' + (team.found || 0) + '</span><br/>' +
+            '<span>👥 Mitglieder: ' + (team.members || 0) + '</span>' +
+          '</div>' +
+          (team.notes ? '<div style="font-size:11px;color:var(--ink-2);margin-top:6px;font-style:italic;">' + escapeHtml(team.notes) + '</div>' : '') +
+        '</div>' +
+        '<button data-team-edit="' + idx + '" class="btn btn-forest" style="font-size:11px;padding:6px 8px;white-space:nowrap;">Bearbeiten</button>' +
+      '</div>';
+    return card;
+  }
+
+  function renderTeams() {
+    const regularTeams = teams.filter(t => !t.guest);
+    const guestTeams   = teams.filter(t => t.guest);
+
+    const grid = byId("teamsGrid");
+    grid.innerHTML = "";
+    if (regularTeams.length === 0) {
+      grid.innerHTML = '<div style="padding: 10px; color: var(--ink-2); text-align: center; font-size:13px;">Keine Mitglieder-Teams vorhanden.</div>';
+    } else {
+      regularTeams.forEach(team => {
+        const idx = teams.indexOf(team);
+        grid.appendChild(renderTeamCard(team, idx, false));
+      });
+    }
+
+    const guestGrid = byId("guestTeamsGrid");
+    guestGrid.innerHTML = "";
+    if (guestTeams.length === 0) {
+      guestGrid.innerHTML = '<div style="padding: 10px; color: var(--ink-2); text-align: center; font-size:13px;">Keine Gast-Teams vorhanden.</div>';
+    } else {
+      guestTeams.forEach(team => {
+        const idx = teams.indexOf(team);
+        guestGrid.appendChild(renderTeamCard(team, idx, true));
+      });
+    }
+  }
+
+  function renderGuestRequests() {
+    const grid = byId("guestRequestsGrid");
+    grid.innerHTML = "";
+
+    if (guestRequests.length === 0) {
+      grid.innerHTML = '<div style="padding: 12px; color: var(--ink-2); text-align: center; font-size:13px;">Keine offenen Gast-Anfragen.</div>';
+      return;
+    }
+
+    guestRequests.forEach((req, idx) => {
+      const item = document.createElement("div");
+      item.style.cssText = "border:1px solid rgba(232,125,62,.3);border-radius:10px;padding:10px;background:rgba(232,125,62,.06);display:flex;justify-content:space-between;align-items:start;gap:8px;";
+
+      if (req.type === "register") {
+        const date = req.requestedAt ? new Date(req.requestedAt).toLocaleDateString("de-DE") : "";
+        item.innerHTML =
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:13px;font-weight:700;color:#c47b1a;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">' +
+              escapeHtml(req.name || "?") +
+              '<span style="font-size:9px;font-weight:800;letter-spacing:.1em;padding:2px 6px;border-radius:5px;background:rgba(242,201,76,.22);color:#c47b1a;border:1px solid rgba(232,125,62,.35);">PROFIL-ANFRAGE</span>' +
+            '</div>' +
+            '<div style="font-size:11px;color:var(--ink-2);margin-top:4px;">⭐ ' + (req.score || 0) + ' Pkt &nbsp;·&nbsp; 📍 ' + (req.found || 0) + ' Orte' + (date ? ' &nbsp;·&nbsp; 📅 ' + date : '') + '</div>' +
+          '</div>' +
+          '<div style="display:flex;flex-direction:column;gap:5px;">' +
+            '<button data-request-approve="' + idx + '" class="btn btn-forest" style="font-size:10px;padding:5px 10px;white-space:nowrap;">✓ Freigeben</button>' +
+            '<button data-request-reject="' + idx + '" class="btn btn-danger" style="font-size:10px;padding:5px 10px;white-space:nowrap;">✕ Ablehnen</button>' +
+          '</div>';
+      } else {
+        item.innerHTML =
+          '<div style="font-size:12px;flex:1;"><strong>' + escapeHtml(req.guestName || "Gast") + '</strong> möchte Team <strong>' + escapeHtml(req.teamName || "?") + '</strong> beitreten</div>' +
+          '<div style="display:flex;gap:6px;">' +
+            '<button data-request-accept="' + idx + '" class="btn btn-forest" style="font-size:10px;padding:4px 8px;">✓</button>' +
+            '<button data-request-reject="' + idx + '" class="btn btn-danger" style="font-size:10px;padding:4px 8px;">✕</button>' +
+          '</div>';
+      }
+      grid.appendChild(item);
+    });
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ========== IMPORT/EXPORT TEAM STATISTICS ==========
+  
+  function exportTeamStats() {
+    loadSessions();
+    if (editingTeamIndex < 0 || editingTeamIndex >= teams.length) {
+      alert("Kein Team ausgewählt");
+      return;
+    }
+    
+    const team = teams[editingTeamIndex];
+    const stats = getTeamStats(team.name);
+    
+    const exportData = {
+      exported: new Date().toISOString(),
+      team: team,
+      statistics: {
+        playCount: stats.playCount,
+        totalDuration: stats.totalDuration,
+        avgDuration: stats.avgDuration,
+        totalPointsEarned: stats.totalPointsEarned,
+        avgPointsPerGame: stats.avgPointsPerGame,
+        totalLocationsFound: stats.totalLocationsFound,
+        avgLocationsPerGame: stats.avgLocationsPerGame,
+        successRate: stats.successRate
+      },
+      sessions: stats.sessions
+    };
+    
+    const payload = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([payload], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `scoutquest-team-${team.name.replace(/\s+/g, "-")}-stats.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    
+    byId("teamEditNotice").textContent = "Statistiken exportiert: " + a.download;
+  }
+  
+  function openImportTeamStatsModal() {
+    byId("teamStatsImportNotice").textContent = "";
+    byId("teamStatsImportFile").value = "";
+    byId("btnTeamStatsImportConfirm").disabled = true;
+    window.teamStatsToImport = null;
+    byId("importTeamStatsWrap").classList.add("open");
+  }
+  
+  function closeImportTeamStatsModal() {
+    byId("importTeamStatsWrap").classList.remove("open");
+    window.teamStatsToImport = null;
+  }
+  
+  function importTeamStatsFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result || "{}"));
+        const sessionsList = Array.isArray(data.sessions) ? data.sessions : [];
+        const hasTeamData = !!data.team;
+        const hasStatsData = !!data.statistics;
+
+        if (!sessionsList.length && !hasTeamData && !hasStatsData) {
+          byId("teamStatsImportNotice").textContent = "❌ Ungültige Datei: weder Sessions noch Teamdaten gefunden.";
+          return;
+        }
+        
+        window.teamStatsToImport = data;
+        byId("btnTeamStatsImportConfirm").disabled = false;
+        byId("teamStatsImportNotice").textContent = sessionsList.length > 0
+          ? `✓ ${sessionsList.length} Sessions geladen. Bereit zum importieren.`
+          : `✓ Teamdaten geladen. Keine Sessions im File vorhanden.`;
+      } catch (err) {
+        byId("teamStatsImportNotice").textContent = "❌ JSON Fehler: " + err.message;
+        byId("btnTeamStatsImportConfirm").disabled = true;
+      }
+    };
+    reader.onerror = () => {
+      byId("teamStatsImportNotice").textContent = "❌ Fehler beim Lesen der Datei";
+      byId("btnTeamStatsImportConfirm").disabled = true;
+    };
+    reader.readAsText(file);
+  }
+  
+  function confirmImportTeamStats() {
+    if (!window.teamStatsToImport) {
+      byId("teamStatsImportNotice").textContent = "❌ Keine Daten zum importieren.";
+      return;
+    }
+    
+    const data = window.teamStatsToImport;
+    
+    try {
+      loadSessions();
+      const currentTeam = editingTeamIndex >= 0 && editingTeamIndex < teams.length ? teams[editingTeamIndex] : null;
+      let teamUpdated = false;
+
+      if (currentTeam && data.team) {
+        const importedTeam = normalizeTeam(data.team, editingTeamIndex);
+        // Übernehme Teamdaten ins aktuell bearbeitete Team (Admin kann explizit auswählen, welches Team bearbeitet wird)
+        teams[editingTeamIndex] = {
+          ...currentTeam,
+          password: importedTeam.password || currentTeam.password,
+          points: importedTeam.points,
+          members: importedTeam.members,
+          foundDate: importedTeam.foundDate || currentTeam.foundDate,
+          notes: importedTeam.notes || currentTeam.notes,
+        };
+        teamUpdated = true;
+      }
+
+      const newSessions = Array.isArray(data.sessions) ? data.sessions.map(normalizeSession) : [];
+      const existingKeys = new Set(sessions.map((session) => String(session.timestamp || session.id)));
+      const uniqueNewSessions = newSessions.filter((session) => !existingKeys.has(String(session.timestamp || session.id)));
+
+      if (uniqueNewSessions.length) {
+        sessions = sessions.concat(uniqueNewSessions);
+        localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+      }
+      if (teamUpdated) {
+        saveTeams();
+      }
+
+      const parts = [];
+      if (teamUpdated) parts.push("✓ Teamdaten aktualisiert (Punkte, Mitglieder, Notizen)");
+      if (uniqueNewSessions.length) {
+        parts.push(`${uniqueNewSessions.length} neue Game-Sessions importiert`);
+      }
+      if (newSessions.length - uniqueNewSessions.length > 0) {
+        parts.push(`${newSessions.length - uniqueNewSessions.length} Duplikate übersprungen`);
+      }
+      if (!parts.length) {
+        parts.push("ℹ Keine neuen Daten zum Importieren vorhanden");
+      }
+      byId("teamStatsImportNotice").textContent = parts.join(" • ");
+      
+      if (editingTeamIndex >= 0 && editingTeamIndex < teams.length) {
+        setTimeout(() => {
+          loadSessions();
+          openTeamEditModal(editingTeamIndex);
+          closeImportTeamStatsModal();
+        }, 250);
+      } else {
+        setTimeout(() => closeImportTeamStatsModal(), 1200);
+      }
+    } catch (err) {
+      byId("teamStatsImportNotice").textContent = "❌ Fehler beim Import: " + err.message;
+      console.error("Import error:", err);
+    }
+  }
+
+
+  function openSettingsModal() {
+    settingsNotice.textContent = "";
+    sFocusCoord.value = formatGoogleMapsDump(settings.focusLat, settings.focusLon);
+    sMapZoom.value = String(getMapZoom());
+    sStartLabel.value = getStartLabel();
+    sDurationMin.value     = String(settings.durationMin     ?? DEFAULT_SETTINGS.durationMin);
+    sDurationMax.value     = String(settings.durationMax     ?? DEFAULT_SETTINGS.durationMax);
+    sDurationDefault.value = String(settings.durationDefault ?? DEFAULT_SETTINGS.durationDefault);
+    settingsWrap.classList.add("open");
+  }
+
+  function closeSettingsModal() {
+    settingsWrap.classList.remove("open");
+    settingsNotice.textContent = "";
+  }
+
+  function saveSettingsModal() {
+    const parsedCoord = parseGoogleMapsDump(sFocusCoord.value);
+    if (sFocusCoord.value.trim() && !parsedCoord) {
+      settingsNotice.textContent = "Fokus Koordinate ungueltig. Format: (51°14'32.7\"N 6°32'16.8\"E)";
+      return;
+    }
+
+    const nextZoom = Number(sMapZoom.value);
+    if (!Number.isFinite(nextZoom) || nextZoom < 1 || nextZoom > 19) {
+      settingsNotice.textContent = "Karten Zoom muss zwischen 1 und 19 liegen.";
+      return;
+    }
+
+    const startLabel = sStartLabel.value.trim();
+    if (!startLabel) {
+      settingsNotice.textContent = "Bitte einen Startpunkt des Spiels eintragen.";
+      return;
+    }
+
+    const durMin = Math.max(5, Math.min(360, Number(sDurationMin.value) || DEFAULT_SETTINGS.durationMin));
+    const durMax = Math.max(5, Math.min(360, Number(sDurationMax.value) || DEFAULT_SETTINGS.durationMax));
+    const durDef = Math.max(5, Math.min(360, Number(sDurationDefault.value) || DEFAULT_SETTINGS.durationDefault));
+    if (durMin > durMax) {
+      settingsNotice.textContent = "Min. Dauer darf nicht grösser als Max. Dauer sein.";
+      return;
+    }
+    if (durDef < durMin || durDef > durMax) {
+      settingsNotice.textContent = "Standard Dauer muss zwischen Min. und Max. Dauer liegen.";
+      return;
+    }
+
+    settings = {
+      focusLat: parsedCoord ? parsedCoord.lat : settings.focusLat,
+      focusLon: parsedCoord ? parsedCoord.lon : settings.focusLon,
+      mapZoom: Math.round(nextZoom),
+      startLabel,
+      durationMin: durMin,
+      durationMax: durMax,
+      durationDefault: durDef,
+    };
+    saveSettings();
+    closeSettingsModal();
+  }
+
+  function renderStats() {
+    byId("sTotal").textContent = String(locations.length);
+    byId("sPhoto").textContent = String(locations.filter((loc) => loc.isActive !== false && hasPhoto(loc)).length);
+    byId("sGps").textContent = String(locations.filter((loc) => loc.isActive !== false && hasGps(loc)).length);
+    byId("sComplete").textContent = completenessPercent() + "%";
+  }
+
+  function renderGrid() {
+    renderClusteredGrid();
+  }
+
+  function openModal(index) {
+    editingIndex = index;
+    const loc = locations[index];
+    modalTitle.textContent = (loc.name || "Ort") + " bearbeiten";
+    modalSub.textContent = "Aenderungen werden direkt in localStorage gespeichert.";
+    modalNotice.textContent = "";
+
+    fName.value = loc.name || "";
+    fHint1.value = loc.hint1 || "";
+    fHint2.value = loc.hint2 || "";
+    fPhotoUrl.value = loc.photoUrl || "";
+    fLat.value = Number.isFinite(loc.lat) ? String(loc.lat) : "";
+    fLon.value = Number.isFinite(loc.lon) ? String(loc.lon) : "";
+    fCoordDump.value = "";
+    setSelectedDirection(loc.directionFlag);
+    setSelectedActive(loc.isActive);
+    previewLarge.src = photoSrc(loc);
+
+    modalWrap.classList.add("open");
+  }
+
+  function closeModal() {
+    modalWrap.classList.remove("open");
+    editingIndex = -1;
+  }
+
+  function findPointOnMapFromEditor() {
+    if (editingIndex < 0) return;
+    const latValue = Number(byId("fLat").value);
+    const lonValue = Number(byId("fLon").value);
+    closeModal();
+    showMapModal({
+      moveIndex: editingIndex,
+      returnToModal: true,
+      moveZoom: 18,
+      focusLat: Number.isFinite(latValue) ? latValue : undefined,
+      focusLon: Number.isFinite(lonValue) ? lonValue : undefined,
+    });
+  }
+
+  function saveModal() {
+    if (editingIndex < 0) return;
+    const current = locations[editingIndex];
+    const parsedDump = parseGoogleMapsDump(fCoordDump.value);
+    const nextLat = parsedDump ? parsedDump.lat : safeNumber(fLat.value);
+    const nextLon = parsedDump ? parsedDump.lon : safeNumber(fLon.value);
+
+    if (fCoordDump.value.trim() && !parsedDump) {
+      modalNotice.textContent = "Koordinaten-Dump ungueltig. Format: (51°14'32.7\"N 6°32'16.8\"E)";
+      return;
+    }
+
+    const updated = {
+      ...current,
+      name: fName.value.trim() || current.name,
+      hint1: fHint1.value.trim(),
+      hint2: fHint2.value.trim(),
+      photoUrl: fPhotoUrl.value.trim(),
+      lat: nextLat,
+      lon: nextLon,
+      directionFlag: getSelectedDirection(),
+      isActive: getSelectedActive(),
+    };
+
+    const photoIsNew = !hasPhoto(current) && hasPhoto(updated);
+    if (!hasGps(updated) && photoIsNew) {
+      updated.lat = PLACEHOLDER_COORD.lat;
+      updated.lon = PLACEHOLDER_COORD.lon;
+      modalNotice.textContent = "Keine Koordinaten gesetzt. Platzhalter wurde uebernommen.";
+    }
+
+    if (hasGps(updated)) {
+      const distance = distanceToGameCenter(updated);
+      if (distance != null && distance > GAME_RADIUS_METERS) {
+        modalNotice.textContent = "Ort liegt ausserhalb des erlaubten Radius (" + Math.round(distance) + " m > " + GAME_RADIUS_METERS + " m).";
+        return;
+      }
+    }
+
+    locations[editingIndex] = updated;
+    saveAll();
+    closeModal();
+  }
+
+  function deleteCurrentLocation() {
+    if (editingIndex < 0 || editingIndex >= locations.length) return;
+    const targetName = String(locations[editingIndex].name || "diesen Ort");
+    const ok = confirm('Soll "' + targetName + '" wirklich geloescht werden?');
+    if (!ok) return;
+    locations.splice(editingIndex, 1);
+    saveAll();
+    closeModal();
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Datei konnte nicht gelesen werden"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function applyImageFile(file) {
+    try {
+      const base64 = await fileToDataUrl(file);
+      fPhotoUrl.value = base64;
+      previewLarge.src = base64;
+      modalNotice.textContent = "Foto als Base64 geladen.";
+    } catch (err) {
+      modalNotice.textContent = "Upload fehlgeschlagen.";
+    }
+  }
+
+  gridEl.addEventListener("click", (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    const editIdx = target.getAttribute("data-edit");
+    if (editIdx != null) openModal(Number(editIdx));
+  });
+
+  byId("teamsGrid").addEventListener("click", (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    const editIdx = target.getAttribute("data-team-edit");
+    if (editIdx != null) openTeamEditModal(Number(editIdx));
+  });
+
+  byId("guestTeamsGrid").addEventListener("click", (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    const editIdx = target.getAttribute("data-team-edit");
+    if (editIdx != null) openTeamEditModal(Number(editIdx));
+  });
+
+  byId("guestRequestsGrid").addEventListener("click", (e) => {
+    const target = e.target.closest("button");
+    if (!target) return;
+    const approveIdx = target.getAttribute("data-request-approve");
+    const acceptIdx  = target.getAttribute("data-request-accept");
+    const rejectIdx  = target.getAttribute("data-request-reject");
+
+    if (approveIdx != null) {
+      // Profile registration: promote guest team to full member
+      const req = guestRequests[Number(approveIdx)];
+      if (req && req.type === "register") {
+        let team = teams.find(t => (req.teamId && t.id === req.teamId) || t.name === req.name);
+        if (team) {
+          // Existing guest team → promote
+          team.guest = false;
+          if (req.password) team.password = req.password;
+        } else {
+          // Team doesn't exist yet (old registration without localStorage save) → create it
+          teams.push(normalizeTeam({
+            id: req.teamId || Date.now(),
+            name: req.name || "Gast",
+            password: req.password || "",
+            points: req.score || 0,
+            found: req.found || 0,
+            members: 0,
+            guest: false,
+          }, teams.length));
+        }
+        saveTeams();
+        guestRequests.splice(Number(approveIdx), 1);
+        saveGuestRequests();
+      }
+    }
+
+    if (acceptIdx != null) {
+      // Legacy join request
+      const req = guestRequests[Number(acceptIdx)];
+      if (req) {
+        const team = teams.find(t => t.name === req.teamName);
+        if (team) { team.members = (team.members || 0) + 1; saveTeams(); }
+        guestRequests.splice(Number(acceptIdx), 1);
+        saveGuestRequests();
+      }
+    }
+
+    if (rejectIdx != null) {
+      // For register requests: keep team as guest (result stays visible), just remove request
+      guestRequests.splice(Number(rejectIdx), 1);
+      saveGuestRequests();
+    }
+  });
+
+  byId("btnSave").addEventListener("click", saveModal);
+  byId("btnCancel").addEventListener("click", closeModal);
+  byId("btnDelete").addEventListener("click", deleteCurrentLocation);
+  byId("btnFindOnMap").addEventListener("click", findPointOnMapFromEditor);
+  byId("btnData").addEventListener("click", openDataModal);
+  byId("btnPickFolder").addEventListener("click", pickSaveFolder);
+  byId("btnSettings").addEventListener("click", openSettingsModal);
+  byId("btnSettingsCancel").addEventListener("click", closeSettingsModal);
+  byId("btnSettingsSave").addEventListener("click", saveSettingsModal);
+  byId("btnTeams").addEventListener("click", openTeamsModal);
+  byId("btnTeamsCancel").addEventListener("click", closeTeamsModal);
+  byId("btnAddTeam").addEventListener("click", () => openTeamEditModal(-1));
+  byId("btnTeamSave").addEventListener("click", saveTeamModal);
+  byId("btnTeamEditCancel").addEventListener("click", closeTeamEditModal);
+  byId("btnTeamDelete").addEventListener("click", deleteCurrentTeam);
+  byId("btnExportTeamStats").addEventListener("click", exportTeamStats);
+  byId("btnImportTeamStats").addEventListener("click", openImportTeamStatsModal);
+  byId("btnTeamStatsImportCancel").addEventListener("click", closeImportTeamStatsModal);
+  byId("btnTeamStatsImportConfirm").addEventListener("click", confirmImportTeamStats);
+  byId("btnPickTeamStatsFile").addEventListener("click", () => byId("teamStatsImportFile").click());
+  byId("teamStatsImportFile").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) importTeamStatsFile(file);
+    e.target.value = "";
+  });
+
+  byId("btnExportLocationsJson").addEventListener("click", exportLocationsJson);
+  byId("btnExportTeamsJson").addEventListener("click", exportTeamsJson);
+  byId("btnExportSessionsJson").addEventListener("click", exportSessionsJson);
+  byId("btnExportBackupJson").addEventListener("click", exportBackupJson);
+  byId("btnImportLocationsJson").addEventListener("click", () => {
+    window.dataImportMode = "locations";
+    byId("dataImportFile").click();
+  });
+  byId("btnImportTeamsJson").addEventListener("click", () => {
+    window.dataImportMode = "teams";
+    byId("dataImportFile").click();
+  });
+  byId("btnImportSessionsJson").addEventListener("click", () => {
+    window.dataImportMode = "sessions";
+    byId("dataImportFile").click();
+  });
+  byId("btnImportBackupJson").addEventListener("click", () => {
+    window.dataImportMode = "backup";
+    byId("dataImportFile").click();
+  });
+  byId("btnDataClose").addEventListener("click", closeDataModal);
+  byId("dataImportFile").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) importDataFile(file);
+    e.target.value = "";
+  });
+
+  window.addEventListener("storage", (event) => {
+    if (event.key === SESSIONS_STORAGE_KEY) {
+      loadSessions();
+    }
+  });
+
+  byId("btnShowMap").addEventListener("click", showMapModal);
+  byId("btnCloseMap").addEventListener("click", closeMapModal);
+  if (overviewOnlyActiveToggle) {
+    overviewOnlyActiveToggle.checked = overviewOnlyActive;
+    overviewOnlyActiveToggle.addEventListener("change", () => {
+      overviewOnlyActive = overviewOnlyActiveToggle.checked;
+      renderGrid();
+    });
+  }
+  if (mapOnlyActiveToggle) {
+    mapOnlyActiveToggle.checked = mapOnlyActive;
+    mapOnlyActiveToggle.addEventListener("change", () => {
+      mapOnlyActive = mapOnlyActiveToggle.checked;
+      const mapOpen = byId("mapSection").classList.contains("open");
+      if (!mapOpen) return;
+      const reopenOptions = Number.isFinite(mapMoveIndex) && mapMoveIndex >= 0
+        ? { moveIndex: mapMoveIndex, returnToModal: mapReturnToModal, moveZoom: 17 }
+        : {};
+      showMapModal(reopenOptions);
+    });
+  }
+
+  function clusterByDirection() {
+    const clusters = { C: [], NE: [], SE: [], SW: [], NW: [], U: [] };
+    locations.forEach((loc, idx) => {
+      if (overviewOnlyActive && loc.isActive === false) return;
+      const dir = normalizeDirection(loc.directionFlag);
+      if (!dir) {
+        clusters.U.push({ loc, idx });
+        return;
+      }
+      clusters[dir].push({ loc, idx });
+    });
+    return clusters;
+  }
+
+  function renderClusteredGrid() {
+    gridEl.innerHTML = "";
+    const clusters = clusterByDirection();
+    const dirs = [
+      { key: "C", label: "Zentral" },
+      { key: "NE", label: "Nord-Ost" },
+      { key: "SE", label: "Sued-Ost" },
+      { key: "SW", label: "Sued-West" },
+      { key: "NW", label: "Nord-West" },
+      { key: "U", label: "Ohne Flag" },
+    ];
+
+    dirs.forEach(({ key, label }) => {
+      const items = clusters[key];
+      if (!items.length) return;
+
+      const section = document.createElement("div");
+      section.className = "cluster-section";
+      section.innerHTML =
+        '<div class="direction-label">' + label + ' (' + items.length + ')</div>' +
+        '<div class="cluster-grid" id="cluster-' + key + '"></div>';
+      gridEl.appendChild(section);
+
+      const clusterGrid = section.querySelector("#cluster-" + key);
+      items.forEach(({ loc, idx }) => {
+        const card = document.createElement("article");
+        card.className = "card";
+        card.style.cursor = "pointer";
+        card.innerHTML =
+          '<div class="preview">' +
+            '<img src="' + photoSrc(loc) + '" alt="" />' +
+            '<div class="badge ' + (hasGps(loc) ? "ok" : "") + '">' + (hasGps(loc) ? "GPS" : "✕") + '</div>' +
+          '</div>' +
+          '<div class="card-body">' +
+            '<div class="name" style="font-size:12px;">' + escapeHtml(loc.name) + '</div>' +
+            '<div class="meta"><span class="chip">Flag: ' + directionLabel(key) + '</span><span class="chip">' + (loc.isActive === false ? "Nicht aktiv" : "Aktiv") + '</span></div>' +
+            '<button class="btn btn-forest" data-edit="' + idx + '" style="font-size:11px;padding:6px 8px;">Bearbeiten</button>' +
+          '</div>';
+        clusterGrid.appendChild(card);
+      });
+    });
+  }
+
+  async function showMapModal(options = {}) {
+    stopMapMoveMode();
+    const mapSection = byId("mapSection");
+    mapSection.classList.add("open");
+    if (mapOnlyActiveToggle) {
+      mapOnlyActiveToggle.checked = mapOnlyActive;
+    }
+    await new Promise(r => setTimeout(r, 100));
+
+    if (window.mapInstance) {
+      window.mapInstance.remove();
+    }
+
+    const center = getGameCenter();
+    const map = L.map("mapLeaflet").setView([center.lat, center.lon], getMapZoom());
+    window.mapInstance = map;
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap",
+      maxZoom: 19
+    }).addTo(map);
+
+    const focusIndex = Number.isFinite(options.moveIndex) ? options.moveIndex : -1;
+    const withGps = locations
+      .map((loc, idx) => ({ loc, idx }))
+      .filter((item) => {
+        if (!hasGps(item.loc)) return false;
+        if (!mapOnlyActive) return true;
+        if (item.idx === focusIndex) return true;
+        return item.loc.isActive !== false;
+      });
+    const bounds = L.latLngBounds();
+
+    const churchMarker = L.marker([center.lat, center.lon])
+      .bindPopup(escapeHtml(getStartLabel()) + " (Zentrum)")
+      .addTo(map);
+    bounds.extend(churchMarker.getLatLng());
+
+    const radiusCircle = L.circle([center.lat, center.lon], {
+      radius: GAME_RADIUS_METERS,
+      color: "#1f3a2b",
+      fillColor: "#5be584",
+      fillOpacity: 0.12,
+      weight: 2,
+    }).addTo(map);
+    const radiusBounds = radiusCircle.getBounds();
+    bounds.extend(radiusBounds);
+
+    const overlapMap = new Map();
+    withGps.forEach((item) => {
+      const key = item.loc.lat.toFixed(6) + "," + item.loc.lon.toFixed(6);
+      const group = overlapMap.get(key) || [];
+      group.push(item);
+      overlapMap.set(key, group);
+    });
+
+    overlapMap.forEach((group) => {
+      group.forEach((item, pos) => {
+        const loc = item.loc;
+        const idx = item.idx;
+        const shifted = markerOffset(loc.lat, loc.lon, pos, group.length);
+        L.marker([shifted.lat, shifted.lon])
+        .bindPopup(
+          '<div style="font-family:Manrope;font-size:12px;">' +
+            '<strong>' + escapeHtml(loc.name) + '</strong><br/>' +
+            '<span>Flag: ' + escapeHtml(directionLabel(loc.directionFlag)) + '</span><br/>' +
+            '<span>Hinweis 1: ' + escapeHtml(loc.hint1 || "-") + '</span><br/>' +
+            '<span>Hinweis 2: ' + escapeHtml(loc.hint2 || "-") + '</span><br/>' +
+            '<img src="' + photoSrc(loc) + '" data-map-edit="' + idx + '" style="width:150px;margin-top:8px;border-radius:4px;cursor:pointer;" />' +
+            '<button type="button" data-map-edit="' + idx + '" style="margin-top:8px;width:100%;padding:6px 8px;border:0;border-radius:8px;background:#1f3a2b;color:#faf5e6;font-weight:700;cursor:pointer;">Bearbeiten</button>' +
+            '<button type="button" data-map-move="' + idx + '" style="margin-top:6px;width:100%;padding:6px 8px;border:1px solid #1f3a2b;border-radius:8px;background:#faf5e6;color:#1f3a2b;font-weight:700;cursor:pointer;">Auf Karte verschieben</button>' +
+          '</div>'
+        )
+        .addTo(map);
+        if (radiusBounds.contains([shifted.lat, shifted.lon])) {
+          bounds.extend([shifted.lat, shifted.lon]);
+        }
+      });
+    });
+
+    const hasFocusedPoint = Number.isFinite(options.focusLat) && Number.isFinite(options.focusLon);
+
+    if (bounds.isValid() && !hasFocusedPoint) {
+      map.fitBounds(bounds, { padding: [20, 20] });
+      if (!Number.isFinite(options.moveIndex)) {
+        map.setZoom(Math.max(getMapZoom(), Math.min(19, map.getZoom() + 1)));
+        map.setMinZoom(map.getZoom());
+      }
+    }
+
+    map.on("popupopen", (event) => {
+      const popupEl = event.popup.getElement();
+      if (!popupEl) return;
+      const editTriggers = popupEl.querySelectorAll("[data-map-edit]");
+      editTriggers.forEach((trigger) => {
+        trigger.addEventListener("click", () => {
+          const idx = Number(trigger.getAttribute("data-map-edit"));
+          if (!Number.isFinite(idx)) return;
+          closeMapModal();
+          openModal(idx);
+        });
+      });
+
+      const moveTriggers = popupEl.querySelectorAll("[data-map-move]");
+      moveTriggers.forEach((trigger) => {
+        trigger.addEventListener("click", () => {
+          const idx = Number(trigger.getAttribute("data-map-move"));
+          if (!Number.isFinite(idx)) return;
+          startMapMoveMode(idx, false, 17);
+          if (window.mapInstance) {
+            window.mapInstance.closePopup();
+          }
+        });
+      });
+    });
+
+    if (hasFocusedPoint) {
+      map.setView([options.focusLat, options.focusLon], Number(options.moveZoom) || 18);
+    }
+
+    if (Number.isFinite(options.moveIndex) && options.moveIndex >= 0 && options.moveIndex < locations.length) {
+      if (hasFocusedPoint) {
+        const target = locations[options.moveIndex];
+        locations[options.moveIndex] = {
+          ...target,
+          lat: Number(options.focusLat),
+          lon: Number(options.focusLon),
+        };
+      }
+      startMapMoveMode(options.moveIndex, !!options.returnToModal, Number(options.moveZoom) || 18);
+    }
+  }
+
+  function clearMapMinZoom() {
+    if (window.mapInstance && Number.isFinite(window.mapInstance.getMinZoom())) {
+      window.mapInstance.setMinZoom(0);
+    }
+  }
+
+  function closeMapModal() {
+    clearMapMinZoom();
+    stopMapMoveMode();
+    byId("mapSection").classList.remove("open");
+    if (window.mapInstance) {
+      window.mapInstance.remove();
+      window.mapInstance = null;
+    }
+  }
+    loadSettings();
+
+  byId("mapSection").addEventListener("click", (e) => {
+    if (e.target === byId("mapSection")) closeMapModal();
+  });
+
+  byId("btnPickImage").addEventListener("click", () => imgFile.click());
+  imgFile.addEventListener("change", async (e) => {
+    const input = e.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    await applyImageFile(file);
+    input.value = "";
+  });
+
+  fPhotoUrl.addEventListener("input", () => {
+    previewLarge.src = fPhotoUrl.value.trim() || photoFallback("custom");
+  });
+
+  ["dragenter", "dragover"].forEach((name) => {
+    uploadZone.addEventListener(name, (e) => {
+      e.preventDefault();
+      uploadZone.classList.add("active");
+    });
+  });
+  ["dragleave", "drop"].forEach((name) => {
+    uploadZone.addEventListener(name, (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove("active");
+    });
+  });
+  uploadZone.addEventListener("drop", async (e) => {
+    const dt = e.dataTransfer;
+    const file = dt && dt.files && dt.files[0];
+    if (!file) return;
+    await applyImageFile(file);
+  });
+
+  modalWrap.addEventListener("click", (e) => {
+    if (e.target === modalWrap) closeModal();
+  });
+
+  byId("teamsWrap").addEventListener("click", (e) => {
+    if (e.target === byId("teamsWrap")) closeTeamsModal();
+  });
+
+  byId("teamEditWrap").addEventListener("click", (e) => {
+    if (e.target === byId("teamEditWrap")) closeTeamEditModal();
+  });
+
+  byId("dataWrap").addEventListener("click", (e) => {
+    if (e.target === byId("dataWrap")) closeDataModal();
+  });
+
+  byId("importTeamStatsWrap").addEventListener("click", (e) => {
+    if (e.target === byId("importTeamStatsWrap")) closeImportTeamStatsModal();
+  });
+
+  // Drag and drop for team stats import
+  const importStatsZone = byId("importTeamStatsWrap");
+  if (importStatsZone) {
+    ["dragenter", "dragover"].forEach((name) => {
+      importStatsZone.addEventListener(name, (e) => {
+        if (e.target === importStatsZone) {
+          e.preventDefault();
+          importStatsZone.style.background = "rgba(91,229,132,.15)";
+        }
+      });
+    });
+    ["dragleave", "drop"].forEach((name) => {
+      importStatsZone.addEventListener(name, (e) => {
+        if (e.target === importStatsZone) {
+          e.preventDefault();
+          importStatsZone.style.background = "rgba(20,24,26,.7)";
+        }
+      });
+    });
+    importStatsZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      importStatsZone.style.background = "rgba(20,24,26,.7)";
+      const dt = e.dataTransfer;
+      const file = dt && dt.files && dt.files[0];
+      if (file) importTeamStatsFile(file);
+    });
+  }
+
+  loadAll();
+  loadTeams();
+  loadGuestRequests();
+  loadSessions();
+  tryRestoreFolder(); // Gespeicherten Ordner wiederherstellen (falls Zugriff bereits gewährt)
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</body>
+</html>

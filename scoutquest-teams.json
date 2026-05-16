@@ -1,0 +1,49 @@
+{
+  "exported": "2026-05-16T22:43:28.525Z",
+  "teams": [
+    {
+      "id": 1778502478047,
+      "name": "Werwolf",
+      "password": "Werwolf",
+      "points": 1000,
+      "found": 0,
+      "members": 10,
+      "foundDate": "2026-05-11",
+      "notes": "",
+      "guest": false
+    },
+    {
+      "id": 1778963275569,
+      "name": "Leiter",
+      "password": "Leiter",
+      "points": 500,
+      "found": 0,
+      "members": 22,
+      "foundDate": "2026-05-16",
+      "notes": "",
+      "guest": false
+    },
+    {
+      "id": 1778964647789,
+      "name": "Leiter 2",
+      "password": "Leiter 2",
+      "points": 300,
+      "found": 0,
+      "members": 6,
+      "foundDate": "2026-05-16",
+      "notes": "",
+      "guest": false
+    },
+    {
+      "id": 1778971398446,
+      "name": "cfgtzuik",
+      "password": "",
+      "points": 0,
+      "found": 0,
+      "members": 0,
+      "foundDate": "2026-05-16",
+      "notes": "",
+      "guest": true
+    }
+  ]
+}

@@ -1227,7 +1227,6 @@ function App() {
             if (v === "login")    { setScreen("login"); }
             else if (v === "setup") { setScreen("setup"); }
             else if (v === "complete") { setScreen("complete"); }
-            else if (v === "ranking") { setScreen("ranking"); setTab("ranking"); }
             else { setScreen("app"); setTab(v); }
           }} />
       </TweaksPanel>
@@ -1297,7 +1296,7 @@ function GuestSaveSheet({ open, groupName, score, found, total, onClose, onSaved
               display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8,
             }}>
               <Mini label="Punkte"   value={score}            accent="var(--neon)" />
-              <Mini label="Gefunden" value={found} accent="var(--gold)" />
+              <Mini label="Gefunden" value={`${found}/${total}`} accent="var(--gold)" />
               <Mini label="Status"   value="Gast"             accent="var(--orange)" />
             </div>
 

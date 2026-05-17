@@ -48,6 +48,28 @@ function getCurrentPosition() {
 function LoginScreen({ onLogin, onGuest }) {
   const [groupId, setGroupId] = useState("Wölfe");
   const [pw, setPw] = useState("");
+  const [error, setError] = useState("");
+
+  // Teams, Ladezustand und Fehler als Props
+  const { teams = [], teamsLoaded = false, loginError = "" } = arguments[0] || {};
+
+  function handleLogin() {
+    if (!teamsLoaded) {
+      setError("Teamdaten werden noch geladen...");
+      return;
+    }
+    const team = teams.find(t => t && t.name && t.name.trim().toLowerCase() === groupId.trim().toLowerCase());
+    if (!team) {
+      setError("Team nicht gefunden.");
+      return;
+    }
+    if ((team.password || "") !== pw) {
+      setError("Falsches Passwort.");
+      return;
+    }
+    setError("");
+    onLogin(groupId);
+  }
 
   return (
     <div className="screen" style={{ background: "var(--forest)", color: "var(--paper)", animation: "screenIn .4s ease" }}>
@@ -57,8 +79,7 @@ function LoginScreen({ onLogin, onGuest }) {
         background:
           "radial-gradient(80% 60% at 50% 30%, rgba(91,229,132,.15), transparent 60%),"+
           "radial-gradient(50% 40% at 80% 80%, rgba(232,125,62,.20), transparent 60%)",
-        pointerEvents: "none",
-      }}/>
+        pointerEvents: "none", }}/>
       {/* topo lines */}
       <svg viewBox="0 0 390 400" preserveAspectRatio="none"
            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 400, opacity: .12, pointerEvents: "none" }}>
@@ -90,7 +111,7 @@ function LoginScreen({ onLogin, onGuest }) {
           <Field icon="🔒" label="Passwort"     value={pw}      onChange={setPw}      placeholder="••••••" type="password" />
 
           <button className="btn-primary" style={{ marginTop: 6, background: "var(--neon)", color: "var(--forest)", boxShadow: "0 4px 0 #2EB85F, 0 12px 24px -8px rgba(91,229,132,.4)" }}
-                  onClick={() => onLogin(groupId)}>
+                  onClick={handleLogin}>
             Spiel starten →
           </button>
 
@@ -107,12 +128,17 @@ function LoginScreen({ onLogin, onGuest }) {
           </button>
         </div>
 
+        {(error || loginError) && (
+          <div style={{ marginTop: 14, color: "var(--red)", fontWeight: 700, fontSize: 14 }}>{error || loginError}</div>
+        )}
+
         <div style={{ marginTop: 18, fontSize: 11, textAlign: "center", color: "rgba(250,245,230,.5)", fontWeight: 600, letterSpacing: ".05em" }}>
           PFADFINDER-STADTRALLYE · v 1.0
         </div>
       </div>
     </div>
   );
+}
 }
 
 function Field({ icon, label, value, onChange, placeholder, type = "text" }) {
@@ -998,8 +1024,26 @@ function App() {
   const [roundPos, setRoundPos] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
 
-  // Teams ranking
+  // Teams ranking (zentral geladen)
   const [teams, setTeams] = useState([]);
+  const [teamsLoaded, setTeamsLoaded] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
+  // Teams aus zentraler JSON laden
+  useEffect(() => {
+    fetch("https://polostar82.github.io/ScoutQuest/scoutquest-teams.json")
+      .then(r => r.json())
+      .then(data => {
+        const arr = Array.isArray(data) ? data : Array.isArray(data.teams) ? data.teams : [];
+        setTeams(arr);
+        setTeamsLoaded(true);
+      })
+      .catch(err => {
+        setTeams([]);
+        setTeamsLoaded(true);
+        setLoginError("Teamdaten konnten nicht geladen werden. Prüfe Internetverbindung.");
+      });
+  }, []);
 
   // Modal state
   const [hintOpen, setHintOpen] = useState(false);
@@ -1142,7 +1186,7 @@ function App() {
 
   // Render
   let body;
-  if (screen === "login")    body = <LoginScreen onLogin={handleLogin} onGuest={handleGuest} />;
+  if (screen === "login")    body = <LoginScreen onLogin={handleLogin} onGuest={handleGuest} teams={teams} teamsLoaded={teamsLoaded} loginError={loginError} />;
   else if (screen === "setup") body = <SetupScreen groupName={groupName} initialDuration={duration} initialLocations={locations} onStart={handleStartGame} onBack={() => setScreen("login")} />;
   else if (screen === "complete") body = <CompleteScreen groupName={groupName} score={score} found={found} total={total} time={fmt(timer)} rank={myRank} isGuest={isGuest} onOpenGuestSave={() => setShowGuestSave(true)} onRestart={() => { setRankingFromSave(false); setScreen("setup"); setFound(0); setScore(0); setTimer(0); setRoundOrder(buildShuffledIndices(LOCATIONS.length)); setRoundPos(0); }} />;
   else if (screen === "ranking") body = <RankingScreen groupName={groupName} isGuest={isGuest} teams={teams} showBackToGame={true} onBackToGame={() => { setRankingFromSave(false); setShowGuestSave(false); setScreen("app"); setTab("game"); }} showExitToLogin={rankingFromSave} onExitToLogin={() => { setRankingFromSave(false); setShowGuestSave(false); setScreen("login"); setTab("game"); }} />;

@@ -590,43 +590,53 @@ function RankingScreen({ groupName, isGuest, teams: teamsProp, showBackToGame = 
           </div>
         )}
 
-        {showBackToGame && (
-          <button onClick={onBackToGame} style={{
-            width: "100%",
-            marginTop: 14,
-            background: "var(--neon)",
-            color: "var(--forest)",
-            border: 0,
-            borderRadius: 16,
-            padding: "14px 18px",
-            fontFamily: "var(--font-body)",
-            fontWeight: 700,
-            fontSize: 15,
-            cursor: "pointer",
-            boxShadow: "0 4px 0 #2EB85F, 0 12px 24px -8px rgba(91,229,132,.4)",
-          }}>
-            Zurück zum Spiel
-          </button>
-        )}
-
-        {showExitToLogin && (
-          <button onClick={onExitToLogin} style={{
-            width: "100%",
-            marginTop: 14,
-            background: "var(--forest)",
-            color: "var(--paper)",
-            border: 0,
-            borderRadius: 16,
-            padding: "14px 18px",
-            fontFamily: "var(--font-body)",
-            fontWeight: 700,
-            fontSize: 15,
-            cursor: "pointer",
-          }}>
-            Zurück zum Login
-          </button>
-        )}
       </div>
+
+      {(showBackToGame || showExitToLogin) && (
+        <div style={{
+          padding: "12px 18px 14px",
+          background: "linear-gradient(to top, var(--paper) 75%, rgba(250,245,230,0))",
+          borderTop: "1px solid rgba(20,24,26,.06)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}>
+          {showBackToGame && (
+            <button onClick={onBackToGame} style={{
+              width: "100%",
+              background: "var(--neon)",
+              color: "var(--forest)",
+              border: 0,
+              borderRadius: 16,
+              padding: "14px 18px",
+              fontFamily: "var(--font-body)",
+              fontWeight: 700,
+              fontSize: 15,
+              cursor: "pointer",
+              boxShadow: "0 4px 0 #2EB85F, 0 12px 24px -8px rgba(91,229,132,.4)",
+            }}>
+              Zurück zum Spiel
+            </button>
+          )}
+
+          {showExitToLogin && (
+            <button onClick={onExitToLogin} style={{
+              width: "100%",
+              background: "var(--forest)",
+              color: "var(--paper)",
+              border: 0,
+              borderRadius: 16,
+              padding: "14px 18px",
+              fontFamily: "var(--font-body)",
+              fontWeight: 700,
+              fontSize: 15,
+              cursor: "pointer",
+            }}>
+              Zurück zum Login
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

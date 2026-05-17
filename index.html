@@ -551,10 +551,12 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "buttonSize": "large",
   "gameState": "idle"
 }/*EDITMODE-END*/;
+const GAME_CENTER = { lat: 51.242417, lon: 6.538000 };
 function hasTargetGps(loc) { return Number.isFinite(Number(loc?.lat)) && Number.isFinite(Number(loc?.lon)); }
 function toRad(deg) { return (deg * Math.PI) / 180; }
 function haversineMeters(aLat, aLon, bLat, bLon) { const R = 6371000; const dLat = toRad(bLat - aLat); const dLon = toRad(bLon - aLon); const lat1 = toRad(aLat); const lat2 = toRad(bLat); const h = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)*Math.sin(dLon/2); return 2*R*Math.atan2(Math.sqrt(h),Math.sqrt(1-h)); }
-function getCurrentPosition() { return new Promise((resolve, reject) => { if (!navigator.geolocation) { reject(new Error("Geolocation nicht verfügbar")); return; } navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }); }); }
+function normalizeCoordinates(lat, lon) { const nextLat = Number(lat); const nextLon = Number(lon); if (!Number.isFinite(nextLat) || !Number.isFinite(nextLon)) { return { lat: null, lon: null, swapped: false }; } const directDistance = haversineMeters(GAME_CENTER.lat, GAME_CENTER.lon, nextLat, nextLon); const swappedDistance = haversineMeters(GAME_CENTER.lat, GAME_CENTER.lon, nextLon, nextLat); if (swappedDistance + 1000 < directDistance) { return { lat: nextLon, lon: nextLat, swapped: true }; } return { lat: nextLat, lon: nextLon, swapped: false }; }
+function getCurrentPosition() { return new Promise((resolve, reject) => { if (!navigator.geolocation) { reject(new Error("Geolocation nicht verfügbar")); return; } navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }); })
 function fmt(s) { const m = Math.floor(s/60), ss = s%60; return `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; }
 
 function LoginScreen({ onLogin, onGuest, loginError }) {
@@ -785,7 +787,17 @@ function App() {
     if (!LOCATIONS.length) { setGpsErrorDistance(null); setTweak("gameState", "error"); return; }
     setGpsErrorDistance(null); setTweak("gameState", "checking");
     if (hasTargetGps(currentLoc)) {
-      try { const pos = await getCurrentPosition(); const distance = haversineMeters(Number(currentLoc.lat), Number(currentLoc.lon), pos.coords.latitude, pos.coords.longitude); setGpsErrorDistance(distance); setTweak("gameState", distance <= 20 ? "success" : "error"); } catch (err) { setGpsErrorDistance(null); setTweak("gameState", "error"); }
+      try {
+        const pos = await getCurrentPosition();
+        const target = normalizeCoordinates(currentLoc.lat, currentLoc.lon);
+        const position = normalizeCoordinates(pos.coords.latitude, pos.coords.longitude);
+        if (!Number.isFinite(target.lat) || !Number.isFinite(target.lon) || !Number.isFinite(position.lat) || !Number.isFinite(position.lon)) {
+          throw new Error("GPS-Daten ungueltig");
+        }
+        const distance = haversineMeters(target.lat, target.lon, position.lat, position.lon);
+        setGpsErrorDistance(distance);
+        setTweak("gameState", distance <= 20 ? "success" : "error");
+      } catch (err) { setGpsErrorDistance(null); setTweak("gameState", "error"); }
       return;
     }
     setTimeout(() => { const win = Math.random() > 0.35; setTweak("gameState", win ? "success" : "error"); }, 1800);

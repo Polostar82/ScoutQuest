@@ -475,8 +475,8 @@ const DEFAULT_LOCATIONS = [
 ];
 function normalizeLocation(loc, idx) {
   const fallback = DEFAULT_LOCATIONS[idx] || DEFAULT_LOCATIONS[0];
-  const lat = Number(loc?.lat); const lon = Number(loc?.lon);
-  return { id: Number(loc?.id) || fallback.id, name: String(loc?.name || fallback.name), seed: String(loc?.seed || fallback.seed), hint1: String(loc?.hint1 || fallback.hint1), hint2: String(loc?.hint2 || fallback.hint2), photoUrl: typeof loc?.photoUrl === "string" ? loc.photoUrl : "", lat: Number.isFinite(lat) ? lat : null, lon: Number.isFinite(lon) ? lon : null, isActive: typeof loc?.isActive === "boolean" ? loc.isActive : true };
+  const normalized = normalizeCoordinates(Number(loc?.lat), Number(loc?.lon));
+  return { id: Number(loc?.id) || fallback.id, name: String(loc?.name || fallback.name), seed: String(loc?.seed || fallback.seed), hint1: String(loc?.hint1 || fallback.hint1), hint2: String(loc?.hint2 || fallback.hint2), photoUrl: typeof loc?.photoUrl === "string" ? loc.photoUrl : "", lat: normalized.lat, lon: normalized.lon, isActive: typeof loc?.isActive === "boolean" ? loc.isActive : true, _coordsSwapped: normalized.swapped };
 }
 function loadLocations() {
   try {

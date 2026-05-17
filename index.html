@@ -475,8 +475,17 @@ const DEFAULT_LOCATIONS = [
 ];
 function normalizeLocation(loc, idx) {
   const fallback = DEFAULT_LOCATIONS[idx] || DEFAULT_LOCATIONS[0];
-  const normalized = normalizeCoordinates(Number(loc?.lat), Number(loc?.lon));
-  return { id: Number(loc?.id) || fallback.id, name: String(loc?.name || fallback.name), seed: String(loc?.seed || fallback.seed), hint1: String(loc?.hint1 || fallback.hint1), hint2: String(loc?.hint2 || fallback.hint2), photoUrl: typeof loc?.photoUrl === "string" ? loc.photoUrl : "", lat: normalized.lat, lon: normalized.lon, isActive: typeof loc?.isActive === "boolean" ? loc.isActive : true, _coordsSwapped: normalized.swapped };
+  return {
+    id: Number(loc?.id) || fallback.id,
+    name: String(loc?.name || fallback.name),
+    seed: String(loc?.seed || fallback.seed),
+    hint1: String(loc?.hint1 || fallback.hint1),
+    hint2: String(loc?.hint2 || fallback.hint2),
+    photoUrl: typeof loc?.photoUrl === "string" ? loc.photoUrl : "",
+    lat: Number(loc?.lat),
+    lon: Number(loc?.lon),
+    isActive: typeof loc?.isActive === "boolean" ? loc.isActive : true
+  };
 }
 function loadLocations() {
   try {
@@ -556,7 +565,19 @@ function hasTargetGps(loc) { return Number.isFinite(Number(loc?.lat)) && Number.
 function toRad(deg) { return (deg * Math.PI) / 180; }
 function haversineMeters(aLat, aLon, bLat, bLon) { const R = 6371000; const dLat = toRad(bLat - aLat); const dLon = toRad(bLon - aLon); const lat1 = toRad(aLat); const lat2 = toRad(bLat); const h = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)*Math.sin(dLon/2); return 2*R*Math.atan2(Math.sqrt(h),Math.sqrt(1-h)); }
 function normalizeCoordinates(lat, lon) { const nextLat = Number(lat); const nextLon = Number(lon); if (!Number.isFinite(nextLat) || !Number.isFinite(nextLon)) { return { lat: null, lon: null, swapped: false }; } const directDistance = haversineMeters(GAME_CENTER.lat, GAME_CENTER.lon, nextLat, nextLon); const swappedDistance = haversineMeters(GAME_CENTER.lat, GAME_CENTER.lon, nextLon, nextLat); if (swappedDistance + 1000 < directDistance) { return { lat: nextLon, lon: nextLat, swapped: true }; } return { lat: nextLat, lon: nextLon, swapped: false }; }
-function getCurrentPosition() { return new Promise((resolve, reject) => { if (!navigator.geolocation) { reject(new Error("Geolocation nicht verfügbar")); return; } navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }); })
+function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation nicht verfügbar"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    });
+  });
+}
 function fmt(s) { const m = Math.floor(s/60), ss = s%60; return `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; }
 
 function LoginScreen({ onLogin, onGuest, loginError }) {

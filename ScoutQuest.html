@@ -806,16 +806,22 @@ function App() {
     setGpsErrorDistance(null); setTweak("gameState", "checking");
     if (hasTargetGps(currentLoc)) {
       try {
+        console.log("[GPS] Check started, currentLoc:", currentLoc);
         const pos = await getCurrentPosition();
+        console.log("[GPS] Got position:", pos.coords.latitude, pos.coords.longitude);
         const target = normalizeCoordinates(currentLoc.lat, currentLoc.lon);
+        console.log("[GPS] Target after normalize:", target);
         const position = normalizeCoordinates(pos.coords.latitude, pos.coords.longitude);
+        console.log("[GPS] Position after normalize:", position);
         if (!Number.isFinite(target.lat) || !Number.isFinite(target.lon) || !Number.isFinite(position.lat) || !Number.isFinite(position.lon)) {
+          console.error("[GPS] Invalid coordinates after normalization", target, position);
           throw new Error("GPS-Daten ungueltig");
         }
         const distance = haversineMeters(target.lat, target.lon, position.lat, position.lon);
+        console.log("[GPS] Calculated distance:", distance, "meters");
         setGpsErrorDistance(distance);
         setTweak("gameState", distance <= 20 ? "success" : "error");
-      } catch (err) { setGpsErrorDistance(null); setTweak("gameState", "error"); }
+      } catch (err) { console.error("[GPS] Error:", err); setGpsErrorDistance(null); setTweak("gameState", "error"); }
       return;
     }
     setTimeout(() => { const win = Math.random() > 0.35; setTweak("gameState", win ? "success" : "error"); }, 1800);

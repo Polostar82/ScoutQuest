@@ -520,7 +520,7 @@ function GameScreen({ groupName, score, found, total, timer, rank, currentLoc,
 // ─────────────────────────────────────────────────────────────
 // RANKING SCREEN
 // ─────────────────────────────────────────────────────────────
-function RankingScreen({ groupName, isGuest, teams: teamsProp }) {
+function RankingScreen({ groupName, isGuest, teams: teamsProp, showBackToGame = false, onBackToGame, showExitToLogin = false, onExitToLogin }) {
   const [filter, setFilter] = useState("all");
   const teams = useMemo(() => teamsProp.map(t => ({ ...t, you: !isGuest && t.name === groupName })), [teamsProp, groupName, isGuest]);
   const filtered = useMemo(() => {
@@ -588,6 +588,43 @@ function RankingScreen({ groupName, isGuest, teams: teamsProp }) {
           <div style={{ marginTop: 14, padding: 14, borderRadius: 16, background: "var(--paper-2)", border: "1px dashed rgba(20,24,26,.15)", fontSize: 13, color: "var(--ink-2)", fontWeight: 600, textAlign: "center" }}>
             Als Gast erscheint ihr nach <b style={{ color: "var(--ink)" }}>4 gefundenen Orten</b> im Ranking.
           </div>
+        )}
+
+        {showBackToGame && (
+          <button onClick={onBackToGame} style={{
+            width: "100%",
+            marginTop: 14,
+            background: "var(--neon)",
+            color: "var(--forest)",
+            border: 0,
+            borderRadius: 16,
+            padding: "14px 18px",
+            fontFamily: "var(--font-body)",
+            fontWeight: 700,
+            fontSize: 15,
+            cursor: "pointer",
+            boxShadow: "0 4px 0 #2EB85F, 0 12px 24px -8px rgba(91,229,132,.4)",
+          }}>
+            Zurück zum Spiel
+          </button>
+        )}
+
+        {showExitToLogin && (
+          <button onClick={onExitToLogin} style={{
+            width: "100%",
+            marginTop: 14,
+            background: "var(--forest)",
+            color: "var(--paper)",
+            border: 0,
+            borderRadius: 16,
+            padding: "14px 18px",
+            fontFamily: "var(--font-body)",
+            fontWeight: 700,
+            fontSize: 15,
+            cursor: "pointer",
+          }}>
+            Zurück zum Login
+          </button>
         )}
       </div>
     </div>
@@ -932,6 +969,7 @@ function App() {
   const [groupName, setGroupName] = useState("Wölfe");
   const [isGuest, setIsGuest] = useState(false);
   const [showGuestSave, setShowGuestSave] = useState(false);
+  const [rankingFromSave, setRankingFromSave] = useState(false);
 
   // Setup
   const [duration, setDuration]   = useState(60);   // minutes
@@ -1004,9 +1042,9 @@ function App() {
   }, [t.gameState, screen]);
 
   // Handlers
-  const handleLogin = (name) => { setGroupName(name || "Wölfe"); setIsGuest(false); setScreen("setup"); };
-  const handleGuest = ()    => { setGroupName("Gast"); setIsGuest(true); setScreen("setup"); };
-  const handleLogout = ()   => { setScreen("login"); };
+  const handleLogin = (name) => { setGroupName(name || "Wölfe"); setIsGuest(false); setRankingFromSave(false); setScreen("setup"); };
+  const handleGuest = ()    => { setGroupName("Gast"); setIsGuest(true); setRankingFromSave(false); setScreen("setup"); };
+  const handleLogout = ()   => { setRankingFromSave(false); setScreen("login"); setTab("game"); };
 
   // Load teams from localStorage on mount
   useEffect(() => {
@@ -1026,6 +1064,7 @@ function App() {
     setFound(0); setScore(0); setTimer(d * 60);
     setRoundOrder(buildShuffledIndices(LOCATIONS.length));
     setRoundPos(0);
+    setRankingFromSave(false);
     setScreen("app"); setTab("game");
   };
 
@@ -1092,8 +1131,8 @@ function App() {
   let body;
   if (screen === "login")    body = <LoginScreen onLogin={handleLogin} onGuest={handleGuest} />;
   else if (screen === "setup") body = <SetupScreen groupName={groupName} initialDuration={duration} initialLocations={locations} onStart={handleStartGame} onBack={() => setScreen("login")} />;
-  else if (screen === "complete") body = <CompleteScreen groupName={groupName} score={score} found={found} total={total} time={fmt(timer)} rank={myRank} isGuest={isGuest} onOpenGuestSave={() => setShowGuestSave(true)} onRestart={() => { setScreen("setup"); setFound(0); setScore(0); setTimer(0); setRoundOrder(buildShuffledIndices(LOCATIONS.length)); setRoundPos(0); }} />;
-  else if (screen === "ranking") body = <RankingScreen groupName={groupName} isGuest={isGuest} teams={teams} />;
+  else if (screen === "complete") body = <CompleteScreen groupName={groupName} score={score} found={found} total={total} time={fmt(timer)} rank={myRank} isGuest={isGuest} onOpenGuestSave={() => setShowGuestSave(true)} onRestart={() => { setRankingFromSave(false); setScreen("setup"); setFound(0); setScore(0); setTimer(0); setRoundOrder(buildShuffledIndices(LOCATIONS.length)); setRoundPos(0); }} />;
+  else if (screen === "ranking") body = <RankingScreen groupName={groupName} isGuest={isGuest} teams={teams} showBackToGame={true} onBackToGame={() => { setRankingFromSave(false); setShowGuestSave(false); setScreen("app"); setTab("game"); }} showExitToLogin={rankingFromSave} onExitToLogin={() => { setRankingFromSave(false); setShowGuestSave(false); setScreen("login"); setTab("game"); }} />;
   else {
     const tabBody = tab === "game"
       ? <GameScreen
@@ -1107,7 +1146,7 @@ function App() {
           onCheckGps={handleCheckGps}
         />
       : tab === "ranking"
-        ? <RankingScreen groupName={groupName} isGuest={isGuest} teams={teams} />
+        ? <RankingScreen groupName={groupName} isGuest={isGuest} teams={teams} showBackToGame={true} onBackToGame={() => setTab("game")} />
         : <ProfileScreen
             groupName={groupName} score={score} found={found} total={total}
             soundOn={t.soundOn} onToggleSound={(v) => setTweak("soundOn", v)}
@@ -1153,6 +1192,7 @@ function App() {
           }
           setGroupName(finalName);
           setIsGuest(true);
+          setRankingFromSave(true);
           setShowGuestSave(false);
           setScreen("ranking");
           setTab("ranking");

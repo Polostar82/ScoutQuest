@@ -594,7 +594,10 @@ function RankingScreen({ groupName, isGuest, teams: teamsProp, showBackToGame = 
 
       {(showBackToGame || showExitToLogin) && (
         <div style={{
-          padding: "12px 18px 14px",
+          position: "sticky",
+          bottom: 0,
+          zIndex: 2,
+          padding: "12px 18px calc(14px + env(safe-area-inset-bottom, 0px))",
           background: "linear-gradient(to top, var(--paper) 75%, rgba(250,245,230,0))",
           borderTop: "1px solid rgba(20,24,26,.06)",
           display: "flex",

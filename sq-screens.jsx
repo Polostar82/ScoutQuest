@@ -378,7 +378,7 @@ function GpsOverlay({ state, onClose, errorDistance }) {
           <div className="mono" style={{ fontSize: 12, color: "var(--neon)", letterSpacing: ".1em", textTransform: "uppercase" }}>geschafft in</div>
           <div className="mono" style={{ fontSize: 28, color: "var(--paper)", fontWeight: 700 }}>04:12</div>
         </div>
-        <button onClick={onClose} style={{
+        <button onClick={(e) => { e.stopPropagation(); onClose(); }} style={{
           marginTop: 24, padding: "14px 24px",
           background: "var(--paper)", color: "var(--forest)",
           border: 0, borderRadius: 16,

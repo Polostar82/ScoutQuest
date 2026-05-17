@@ -1093,6 +1093,7 @@ function App() {
   if (screen === "login")    body = <LoginScreen onLogin={handleLogin} onGuest={handleGuest} />;
   else if (screen === "setup") body = <SetupScreen groupName={groupName} initialDuration={duration} initialLocations={locations} onStart={handleStartGame} onBack={() => setScreen("login")} />;
   else if (screen === "complete") body = <CompleteScreen groupName={groupName} score={score} found={found} total={total} time={fmt(timer)} rank={myRank} isGuest={isGuest} onOpenGuestSave={() => setShowGuestSave(true)} onRestart={() => { setScreen("setup"); setFound(0); setScore(0); setTimer(0); setRoundOrder(buildShuffledIndices(LOCATIONS.length)); setRoundPos(0); }} />;
+  else if (screen === "ranking") body = <RankingScreen groupName={groupName} isGuest={isGuest} teams={teams} />;
   else {
     const tabBody = tab === "game"
       ? <GameScreen
@@ -1153,7 +1154,7 @@ function App() {
           setGroupName(finalName);
           setIsGuest(true);
           setShowGuestSave(false);
-          setScreen("app");
+          setScreen("ranking");
           setTab("ranking");
         }}
       />
@@ -1186,6 +1187,7 @@ function App() {
             if (v === "login")    { setScreen("login"); }
             else if (v === "setup") { setScreen("setup"); }
             else if (v === "complete") { setScreen("complete"); }
+            else if (v === "ranking") { setScreen("ranking"); setTab("ranking"); }
             else { setScreen("app"); setTab(v); }
           }} />
       </TweaksPanel>
@@ -1255,7 +1257,7 @@ function GuestSaveSheet({ open, groupName, score, found, total, onClose, onSaved
               display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8,
             }}>
               <Mini label="Punkte"   value={score}            accent="var(--neon)" />
-              <Mini label="Gefunden" value={`${found}/${total}`} accent="var(--gold)" />
+              <Mini label="Gefunden" value={found} accent="var(--gold)" />
               <Mini label="Status"   value="Gast"             accent="var(--orange)" />
             </div>
 

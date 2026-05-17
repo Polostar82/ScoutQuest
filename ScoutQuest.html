@@ -461,6 +461,7 @@ Object.assign(window, { useTweaks, TweaksPanel, TweakSection, TweakRow, TweakSli
 // sq-screens.jsx
 const { useState, useEffect, useRef, useMemo } = React;
 const LOCATIONS_STORAGE_KEY = "scoutquest.locations.v1";
+const GAME_CENTER = { lat: 51.242417, lon: 6.538000 };
 const DEFAULT_LOCATIONS = [
   { id: 1, name: "Alter Wasserturm",    seed: "scout-tower",   hint1: "In der Nähe einer Schule.",       hint2: "Roter Backstein, 19. Jahrhundert.", isActive: true },
   { id: 2, name: "Markthalle",           seed: "scout-market",  hint1: "Wo es samstags duftet.",          hint2: "Großes Glasdach, Eisenträger.",     isActive: true },
@@ -473,10 +474,25 @@ const DEFAULT_LOCATIONS = [
   { id: 9, name: "Hafenkran",            seed: "scout-harbor",  hint1: "Wo das Wasser ist.",              hint2: "Rost-orange Stahl.",                 isActive: true },
   { id:10, name: "Aussichtsturm",        seed: "scout-vista",   hint1: "Man sieht alles von dort.",       hint2: "248 Stufen hinauf.",                 isActive: true },
 ];
+function normalizeCoordinates(lat, lon) {
+  const nextLat = Number(lat);
+  const nextLon = Number(lon);
+  if (!Number.isFinite(nextLat) || !Number.isFinite(nextLon)) {
+    return { lat: null, lon: null, swapped: false };
+  }
+
+  const directDistance = haversineMeters(GAME_CENTER.lat, GAME_CENTER.lon, nextLat, nextLon);
+  const swappedDistance = haversineMeters(GAME_CENTER.lat, GAME_CENTER.lon, nextLon, nextLat);
+  if (swappedDistance + 1000 < directDistance) {
+    return { lat: nextLon, lon: nextLat, swapped: true };
+  }
+
+  return { lat: nextLat, lon: nextLon, swapped: false };
+}
 function normalizeLocation(loc, idx) {
   const fallback = DEFAULT_LOCATIONS[idx] || DEFAULT_LOCATIONS[0];
-  const lat = Number(loc?.lat); const lon = Number(loc?.lon);
-  return { id: Number(loc?.id) || fallback.id, name: String(loc?.name || fallback.name), seed: String(loc?.seed || fallback.seed), hint1: String(loc?.hint1 || fallback.hint1), hint2: String(loc?.hint2 || fallback.hint2), photoUrl: typeof loc?.photoUrl === "string" ? loc.photoUrl : "", lat: Number.isFinite(lat) ? lat : null, lon: Number.isFinite(lon) ? lon : null, isActive: typeof loc?.isActive === "boolean" ? loc.isActive : true };
+  const normalizedCoords = normalizeCoordinates(loc?.lat, loc?.lon);
+  return { id: Number(loc?.id) || fallback.id, name: String(loc?.name || fallback.name), seed: String(loc?.seed || fallback.seed), hint1: String(loc?.hint1 || fallback.hint1), hint2: String(loc?.hint2 || fallback.hint2), photoUrl: typeof loc?.photoUrl === "string" ? loc.photoUrl : "", lat: normalizedCoords.lat, lon: normalizedCoords.lon, isActive: typeof loc?.isActive === "boolean" ? loc.isActive : true, _coordsSwapped: normalizedCoords.swapped };
 }
 function loadLocations() {
   try {
@@ -486,7 +502,11 @@ function loadLocations() {
     if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_LOCATIONS.map(normalizeLocation);
     const normalized = parsed.map((loc, idx) => normalizeLocation(loc, idx));
     const activeOnly = normalized.filter((loc) => loc.isActive !== false);
-    return activeOnly.length ? activeOnly : DEFAULT_LOCATIONS.map(normalizeLocation);
+    const cleaned = (activeOnly.length ? activeOnly : DEFAULT_LOCATIONS.map(normalizeLocation)).map(({ _coordsSwapped, ...loc }) => loc);
+    if (normalized.some((loc) => loc._coordsSwapped)) {
+      localStorage.setItem(LOCATIONS_STORAGE_KEY, JSON.stringify(cleaned));
+    }
+    return cleaned;
   } catch (err) { return DEFAULT_LOCATIONS.map(normalizeLocation); }
 }
 const LOCATIONS = loadLocations();
@@ -785,7 +805,17 @@ function App() {
     if (!LOCATIONS.length) { setGpsErrorDistance(null); setTweak("gameState", "error"); return; }
     setGpsErrorDistance(null); setTweak("gameState", "checking");
     if (hasTargetGps(currentLoc)) {
-      try { const pos = await getCurrentPosition(); const distance = haversineMeters(Number(currentLoc.lat), Number(currentLoc.lon), pos.coords.latitude, pos.coords.longitude); setGpsErrorDistance(distance); setTweak("gameState", distance <= 20 ? "success" : "error"); } catch (err) { setGpsErrorDistance(null); setTweak("gameState", "error"); }
+      try {
+        const pos = await getCurrentPosition();
+        const target = normalizeCoordinates(currentLoc.lat, currentLoc.lon);
+        const position = normalizeCoordinates(pos.coords.latitude, pos.coords.longitude);
+        if (!Number.isFinite(target.lat) || !Number.isFinite(target.lon) || !Number.isFinite(position.lat) || !Number.isFinite(position.lon)) {
+          throw new Error("GPS-Daten ungueltig");
+        }
+        const distance = haversineMeters(target.lat, target.lon, position.lat, position.lon);
+        setGpsErrorDistance(distance);
+        setTweak("gameState", distance <= 20 ? "success" : "error");
+      } catch (err) { setGpsErrorDistance(null); setTweak("gameState", "error"); }
       return;
     }
     setTimeout(() => { const win = Math.random() > 0.35; setTweak("gameState", win ? "success" : "error"); }, 1800);

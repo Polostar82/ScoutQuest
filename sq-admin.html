@@ -500,6 +500,7 @@
         <button class="btn btn-outline btn-icon" id="btnSettings" type="button" title="Einstellungen" aria-label="Einstellungen">⚙</button>
       </div>
     </div>
+    <div class="notice" id="onlineHint" style="display:none;"></div>
     <div class="stats">
       <div class="stat"><label>Orte gesamt</label><strong id="sTotal">0</strong></div>
       <div class="stat"><label>Mit Foto</label><strong id="sPhoto">0</strong></div>
@@ -1466,6 +1467,27 @@
   function setDataNotice(message) {
     const notice = byId("dataNotice");
     if (notice) notice.textContent = message;
+  }
+
+  function initOnlineHint() {
+    const isHosted = /^https?:$/.test(location.protocol) && !["localhost", "127.0.0.1"].includes(location.hostname);
+    if (!isHosted) return;
+
+    const hintEl = byId("onlineHint");
+    const folderBtn = byId("btnPickFolder");
+    const supportsFolderApi = typeof window.showDirectoryPicker === "function";
+
+    hintEl.style.display = "block";
+    if (supportsFolderApi) {
+      hintEl.textContent = "Online-Test aktiv. Hinweis: Daten-Sync in den Systemordner ist browserabhaengig. Import/Export unter Daten funktioniert immer.";
+      return;
+    }
+
+    hintEl.textContent = "Online-Test aktiv. Ordner-Sync wird von diesem Browser nicht unterstuetzt. Bitte Import/Export unter Daten verwenden.";
+    folderBtn.disabled = true;
+    folderBtn.style.opacity = "0.6";
+    folderBtn.style.cursor = "not-allowed";
+    folderBtn.title = "Im Online-Betrieb in diesem Browser nicht verfuegbar. Bitte Daten > Export/Import nutzen.";
   }
 
   function openDataModal() {
@@ -2728,6 +2750,7 @@
   loadTeams();
   loadGuestRequests();
   loadSessions();
+  initOnlineHint();
   tryRestoreFolder(); // Gespeicherten Ordner wiederherstellen (falls Zugriff bereits gewährt)
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

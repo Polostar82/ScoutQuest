@@ -13,7 +13,6 @@ function hasTargetGps(loc) {
 }
 
 function toRad(deg) {
-  return (deg * Math.PI) / 180;
 }
 
 function haversineMeters(aLat, aLon, bLat, bLon) {
@@ -49,6 +48,7 @@ function LoginScreen({ onLogin, onGuest }) {
   const [groupId, setGroupId] = useState("Wölfe");
   const [pw, setPw] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Teams, Ladezustand und Fehler als Props
   const { teams = [], teamsLoaded = false, loginError = "" } = arguments[0] || {};
@@ -107,8 +107,8 @@ function LoginScreen({ onLogin, onGuest }) {
 
         {/* Form */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Field icon="🐺" label="Gruppenname" value={groupId} onChange={setGroupId} placeholder="z.B. Adler" />
-          <Field icon="🔒" label="Passwort"     value={pw}      onChange={setPw}      placeholder="••••••" type="password" />
+          <Field icon="🐺" label="Gruppenname" value={groupId} onChange={setGroupId} placeholder="z.B. Adler" onFocus={() => setGroupId("")} />
+          <Field icon="🔒" label="Passwort"     value={pw}      onChange={setPw}      placeholder="••••••" type="password" showPasswordToggle={true} isPasswordVisible={showPassword} onTogglePassword={() => setShowPassword(!showPassword)} />
 
           <button className="btn-primary" style={{ marginTop: 6, background: "var(--neon)", color: "var(--forest)", boxShadow: "0 4px 0 #2EB85F, 0 12px 24px -8px rgba(91,229,132,.4)" }}
                   onClick={handleLogin}>
@@ -139,9 +139,10 @@ function LoginScreen({ onLogin, onGuest }) {
     </div>
   );
 }
-}
 
-function Field({ icon, label, value, onChange, placeholder, type = "text" }) {
+function Field({ icon, label, value, onChange, placeholder, type = "text", onFocus, showPasswordToggle = false, isPasswordVisible = false, onTogglePassword }) {
+  const inputType = (type === "password" && !isPasswordVisible) ? "password" : (type === "password" && isPasswordVisible) ? "text" : type;
+  
   return (
     <label style={{
       display: "flex", alignItems: "center", gap: 12,
@@ -153,14 +154,25 @@ function Field({ icon, label, value, onChange, placeholder, type = "text" }) {
       <span style={{ fontSize: 22 }}>{icon}</span>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 10, color: "rgba(250,245,230,.5)", letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
-        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-          style={{
-            width: "100%",
-            background: "transparent", border: 0, outline: 0,
-            color: "var(--paper)",
-            fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18,
-            padding: "2px 0 0",
-          }}/>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input type={inputType} value={value} onChange={(e) => onChange(e.target.value)} onFocus={onFocus} placeholder={placeholder}
+            style={{
+              flex: 1,
+              background: "transparent", border: 0, outline: 0,
+              color: "var(--paper)",
+              fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18,
+              padding: "2px 0 0",
+            }}/>
+          {showPasswordToggle && (
+            <button type="button" onClick={onTogglePassword} style={{
+              background: "transparent", border: 0, cursor: "pointer",
+              fontSize: 18, padding: "4px 8px", opacity: 0.7, transition: "opacity 0.2s",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }} onMouseEnter={(e) => e.target.style.opacity = 1} onMouseLeave={(e) => e.target.style.opacity = 0.7}>
+              {isPasswordVisible ? "🔓" : "🔒"}
+            </button>
+          )}
+        </div>
       </div>
     </label>
   );
@@ -546,7 +558,7 @@ function GameScreen({ groupName, score, found, total, timer, rank, currentLoc,
 // ─────────────────────────────────────────────────────────────
 // RANKING SCREEN
 // ─────────────────────────────────────────────────────────────
-function RankingScreen({ groupName, isGuest, teams: teamsProp, showBackToGame = false, onBackToGame, showExitToLogin = false, onExitToLogin }) {
+function RankingScreen({ groupName, isGuest, teams: teamsProp, showBackToGame = false, onBackToGame, backToGameLabel = "Zurück zum Spiel", showExitToLogin = false, onExitToLogin }) {
   const [filter, setFilter] = useState("all");
   const teams = useMemo(() => teamsProp.map(t => ({ ...t, you: !isGuest && t.name === groupName })), [teamsProp, groupName, isGuest]);
   const filtered = useMemo(() => {
@@ -644,7 +656,7 @@ function RankingScreen({ groupName, isGuest, teams: teamsProp, showBackToGame = 
               cursor: "pointer",
               boxShadow: "0 4px 0 #2EB85F, 0 12px 24px -8px rgba(91,229,132,.4)",
             }}>
-              Zurück zum Spiel
+              {backToGameLabel}
             </button>
           )}
 
@@ -898,7 +910,7 @@ function Toggle({ on, onChange }) {
 // ─────────────────────────────────────────────────────────────
 // GAME COMPLETE SCREEN
 // ─────────────────────────────────────────────────────────────
-function CompleteScreen({ groupName, score, found, total, time, rank, isGuest, onOpenGuestSave, onRestart }) {
+function CompleteScreen({ groupName, score, found, total, time, rank, isGuest, onOpenGuestSave, onRestart, onShowRanking, onGuestExit }) {
   return (
     <div className="screen" style={{ background: "var(--forest)", color: "var(--paper)", animation: "screenIn .4s ease" }}>
       <Confetti />
@@ -969,7 +981,7 @@ function CompleteScreen({ groupName, score, found, total, time, rank, isGuest, o
             Nochmal spielen →
           </button>
         )}
-        <button onClick={onRestart} style={{
+        <button onClick={isGuest ? onGuestExit : onShowRanking} style={{
           marginTop: 8, background: "transparent",
           border: "2px solid rgba(250,245,230,.25)", color: "var(--paper)",
           padding: "14px", borderRadius: 16,
@@ -1009,6 +1021,7 @@ function App() {
   const [isGuest, setIsGuest] = useState(false);
   const [showGuestSave, setShowGuestSave] = useState(false);
   const [rankingFromSave, setRankingFromSave] = useState(false);
+  const [rankingFromEnded, setRankingFromEnded] = useState(false);
 
   // Setup
   const [duration, setDuration]   = useState(60);   // minutes
@@ -1099,9 +1112,22 @@ function App() {
   }, [t.gameState, screen]);
 
   // Handlers
-  const handleLogin = (name) => { setGroupName(name || "Wölfe"); setIsGuest(false); setRankingFromSave(false); setScreen("setup"); };
-  const handleGuest = ()    => { setGroupName("Gast"); setIsGuest(true); setRankingFromSave(false); setScreen("setup"); };
-  const handleLogout = ()   => { setRankingFromSave(false); setScreen("login"); setTab("game"); };
+  const handleLogin = (name) => { setGroupName(name || "Wölfe"); setIsGuest(false); setRankingFromSave(false); setRankingFromEnded(false); setScreen("setup"); };
+  const handleGuest = ()    => { setGroupName("Gast"); setIsGuest(true); setRankingFromSave(false); setRankingFromEnded(false); setScreen("setup"); };
+  const handleLogout = ()   => { setRankingFromSave(false); setRankingFromEnded(false); setScreen("complete"); setTab("game"); };
+  const handleGuestExit = () => {
+    setRankingFromSave(false);
+    setRankingFromEnded(false);
+    setShowGuestSave(false);
+    setIsGuest(false);
+    setFound(0);
+    setScore(0);
+    setTimer(0);
+    setRoundOrder(buildShuffledIndices(LOCATIONS.length));
+    setRoundPos(0);
+    setScreen("login");
+    setTab("game");
+  };
 
   // Load teams from localStorage on mount
   useEffect(() => {
@@ -1122,6 +1148,7 @@ function App() {
     setRoundOrder(buildShuffledIndices(LOCATIONS.length));
     setRoundPos(0);
     setRankingFromSave(false);
+    setRankingFromEnded(false);
     setScreen("app"); setTab("game");
   };
 
@@ -1188,8 +1215,8 @@ function App() {
   let body;
   if (screen === "login")    body = <LoginScreen onLogin={handleLogin} onGuest={handleGuest} teams={teams} teamsLoaded={teamsLoaded} loginError={loginError} />;
   else if (screen === "setup") body = <SetupScreen groupName={groupName} initialDuration={duration} initialLocations={locations} onStart={handleStartGame} onBack={() => setScreen("login")} />;
-  else if (screen === "complete") body = <CompleteScreen groupName={groupName} score={score} found={found} total={total} time={fmt(timer)} rank={myRank} isGuest={isGuest} onOpenGuestSave={() => setShowGuestSave(true)} onRestart={() => { setRankingFromSave(false); setScreen("setup"); setFound(0); setScore(0); setTimer(0); setRoundOrder(buildShuffledIndices(LOCATIONS.length)); setRoundPos(0); }} />;
-  else if (screen === "ranking") body = <RankingScreen groupName={groupName} isGuest={isGuest} teams={teams} showBackToGame={true} onBackToGame={() => { setRankingFromSave(false); setShowGuestSave(false); setScreen("app"); setTab("game"); }} showExitToLogin={rankingFromSave} onExitToLogin={() => { setRankingFromSave(false); setShowGuestSave(false); setScreen("login"); setTab("game"); }} />;
+  else if (screen === "complete") body = <CompleteScreen groupName={groupName} score={score} found={found} total={total} time={fmt(timer)} rank={myRank} isGuest={isGuest} onOpenGuestSave={() => setShowGuestSave(true)} onRestart={() => { setRankingFromSave(false); setRankingFromEnded(false); setScreen("setup"); setFound(0); setScore(0); setTimer(0); setRoundOrder(buildShuffledIndices(LOCATIONS.length)); setRoundPos(0); }} onShowRanking={() => { setRankingFromSave(false); setRankingFromEnded(true); setShowGuestSave(false); setScreen("ranking"); setTab("ranking"); }} onGuestExit={handleGuestExit} />;
+  else if (screen === "ranking") body = <RankingScreen groupName={groupName} isGuest={isGuest} teams={teams} showBackToGame={true} backToGameLabel={rankingFromEnded ? "Nochmal spielen" : "Zurück zum Spiel"} onBackToGame={() => { setRankingFromSave(false); setShowGuestSave(false); if (rankingFromEnded) { setRankingFromEnded(false); setScreen("setup"); setFound(0); setScore(0); setTimer(0); setRoundOrder(buildShuffledIndices(LOCATIONS.length)); setRoundPos(0); } else { setScreen("app"); setTab("game"); } }} showExitToLogin={rankingFromSave || rankingFromEnded} onExitToLogin={() => { setRankingFromSave(false); setRankingFromEnded(false); setShowGuestSave(false); setScreen("login"); setTab("game"); }} />;
   else {
     const tabBody = tab === "game"
       ? <GameScreen
@@ -1250,6 +1277,7 @@ function App() {
           setGroupName(finalName);
           setIsGuest(true);
           setRankingFromSave(true);
+          setRankingFromEnded(false);
           setShowGuestSave(false);
           setScreen("ranking");
           setTab("ranking");
